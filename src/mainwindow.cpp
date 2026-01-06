@@ -64,8 +64,10 @@ void MainWindow::setupUi()
     // Laser Pointer Toggle
     laserCheckBox = new QCheckBox("Laser Pointer (L)");
     connect(laserCheckBox, &QCheckBox::toggled, this, [this](bool checked){
+        // Just update state, don't uncheck Zoom
+        laserCheckBox->setChecked(checked); // Visual sync if triggered by key? No, this is the checkbox signal.
+        // Wait, if triggered by key 'L', we called setChecked, which triggered this.
         showLaser = checked;
-        if (checked && zoomCheckBox->isChecked()) zoomCheckBox->setChecked(false);
         presentationDisplay->enableLaserPointer(checked);
     });
 
@@ -82,15 +84,13 @@ void MainWindow::setupUi()
     topBar->addStretch();
     topBar->addWidget(new QLabel("Elapsed:"));
     topBar->addWidget(elapsedLabel);
-    topBar->addWidget(elapsedLabel);
     // mainLayout->addLayout(topBar); // Add later or keep sequence
 
     // Zoom Controls Bar
     QHBoxLayout *zoomBar = new QHBoxLayout();
     zoomCheckBox = new QCheckBox("Zoom (Z)");
     connect(zoomCheckBox, &QCheckBox::toggled, this, [this](bool checked){
-        // Exclusive with laser? PresentationDisplay handles overrides but UI should sync
-        if (checked && laserCheckBox->isChecked()) laserCheckBox->setChecked(false);
+        // State update only
         presentationDisplay->enableZoom(checked);
     });
     

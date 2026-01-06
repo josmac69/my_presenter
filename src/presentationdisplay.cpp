@@ -42,15 +42,18 @@ void PresentationDisplay::refreshSlide()
 void PresentationDisplay::enableLaserPointer(bool active)
 {
     laserActive = active;
-    if (active) {
-        if (zoomActive) enableZoom(false); 
-        
-        if (laserCursor.bitmap().isNull()) {
-             laserCursor = createLaserCursor();
+    
+    // Only update cursor if Zoom is NOT active. 
+    // If Zoom is active, it overrides the cursor (Blank), so we don't touch it.
+    if (!zoomActive) {
+        if (active) {
+            if (laserCursor.bitmap().isNull()) {
+                 laserCursor = createLaserCursor();
+            }
+            setCursor(laserCursor);
+        } else {
+            unsetCursor();
         }
-        setCursor(laserCursor);
-    } else {
-        unsetCursor();
     }
     update();
 }
@@ -58,11 +61,17 @@ void PresentationDisplay::enableLaserPointer(bool active)
 void PresentationDisplay::enableZoom(bool active)
 {
     zoomActive = active;
+    
     if (active) {
-        if (laserActive) enableLaserPointer(false);
+        // Zoom takes visual precedence
         setCursor(Qt::BlankCursor);
     } else {
-        unsetCursor();
+        // When deactivating Zoom, fall back to Laser if active, otherwise Default
+        if (laserActive) {
+            setCursor(laserCursor);
+        } else {
+            unsetCursor();
+        }
     }
     update();
 }
