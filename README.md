@@ -1,13 +1,20 @@
 # my_presenter
 
-A simplified C++ PDF presentation tool built with Qt6. This application allows you to present PDF slides in fullscreen mode with a built-in virtual laser pointer.
+A C++ PDF presentation tool built with Qt6, featuring a dual-window "Presenter Console" designed for professional use.
 
 ## Features
 
-- **PDF Rendering**: Opens and displays PDF files using Qt's PDF module.
-- **Fullscreen Presentation**: Automatically launches in fullscreen mode for professional presentations.
-- **Navigation**: intuitive keyboard controls for slide navigation.
-- **Laser Pointer**: specific key toggle to enable a red virtual laser pointer that follows the mouse cursor.
+- **Dual-Window Mode**:
+    - **Audience View**: Automatically opens on a Secondary Screen (if detected) or as a separate window. Shows only the slides in fullscreen.
+    - **Presenter Console**: Runs on the Primary Screen. Includes:
+        - **Current Slide**: Large view of what the audience sees.
+        - **Next Slide Preview**: Shows the upcoming slide.
+        - **Notes View**: Basic text area for speaker notes.
+        - **Table of Contents**: Navigate using PDF bookmarks (chapters).
+- **Control & Navigation**:
+    - Intuitive keyboard controls.
+    - Clickable TOC sidebar.
+- **Laser Pointer**: Toggle a virtual laser pointer on the audience screen (Toggle with `L`).
 
 ## Prerequisites
 
@@ -17,52 +24,39 @@ A simplified C++ PDF presentation tool built with Qt6. This application allows y
 ## Installation & Build
 
 ### 1. Install Dependencies
-We provide a helper script for Debian-based systems (Debian, Ubuntu, etc.) to automatically check and install missing dependencies:
+We provide a helper script for Debian-based systems to checks and install dependencies:
 
 ```bash
 ./install_dependencies.sh
 ```
 
-Alternatively, you can manually install the required packages:
-```bash
-sudo apt update
-sudo apt install qt6-base-dev qt6-pdf-dev build-essential
-```
-
 ### 2. Build the Application
-Use the included `Makefile` to build the project. This will automatically invoke `qmake6` to configure the build.
-
 ```bash
 make
 ```
 
-To clean build artifacts:
-```bash
-make clean
-```
-
 ## Usage
 
-Run the compiled executable from the build directory:
-
+Run the application:
 ```bash
 ./bin/app
 ```
 
-### Controls
+### Controls (Presenter Console)
 
 | Key | Action |
 | :--- | :--- |
-| **Right Arrow** / **Down Arrow** | Next Slide |
-| **Left Arrow** / **Up Arrow** | Previous Slide |
+| **Right Arrow** / **Down** / **Space** | Next Slide |
+| **Left Arrow** / **Up** / **Backspace** | Previous Slide |
 | **L** | Toggle Laser Pointer |
 | **Esc** | Exit Application |
 
+**Note**: To control the presentation, ensure the **Presenter Console** window has focus.
+
 ## Repository Structure
 
-- `src/`: Source code (`main.cpp`, `mainwindow.cpp`).
-- `include/`: Header files (`mainwindow.h`).
+- `src/`: Source code (`main.cpp`, `mainwindow.cpp`, `presentationdisplay.cpp`).
+- `include/`: Header files.
 - `bin/`: Compiled executable (`app`).
-- `obj/`: Interface object files.
 - `my_presenter.pro`: Qt project configuration.
 - `Makefile`: Build wrapper script.

@@ -53,10 +53,14 @@ OBJECTS_DIR   = obj/
 ####### Files
 
 SOURCES       = src/main.cpp \
-		src/mainwindow.cpp obj/moc_mainwindow.cpp
+		src/mainwindow.cpp \
+		src/presentationdisplay.cpp obj/moc_mainwindow.cpp \
+		obj/moc_presentationdisplay.cpp
 OBJECTS       = obj/main.o \
 		obj/mainwindow.o \
-		obj/moc_mainwindow.o
+		obj/presentationdisplay.o \
+		obj/moc_mainwindow.o \
+		obj/moc_presentationdisplay.o
 DIST          = /usr/lib/x86_64-linux-gnu/qt6/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt6/mkspecs/common/unix.conf \
 		/usr/lib/x86_64-linux-gnu/qt6/mkspecs/common/linux.conf \
@@ -125,8 +129,10 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt6/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt6/mkspecs/features/exceptions.prf \
 		/usr/lib/x86_64-linux-gnu/qt6/mkspecs/features/yacc.prf \
 		/usr/lib/x86_64-linux-gnu/qt6/mkspecs/features/lex.prf \
-		my_presenter.pro include/mainwindow.h src/main.cpp \
-		src/mainwindow.cpp
+		my_presenter.pro include/mainwindow.h \
+		include/presentationdisplay.h src/main.cpp \
+		src/mainwindow.cpp \
+		src/presentationdisplay.cpp
 QMAKE_TARGET  = app
 DESTDIR       = bin/
 TARGET        = bin/app
@@ -303,8 +309,8 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt6/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents include/mainwindow.h $(DISTDIR)/
-	$(COPY_FILE) --parents src/main.cpp src/mainwindow.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents include/mainwindow.h include/presentationdisplay.h $(DISTDIR)/
+	$(COPY_FILE) --parents src/main.cpp src/mainwindow.cpp src/presentationdisplay.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -336,13 +342,19 @@ compiler_moc_predefs_clean:
 obj/moc_predefs.h: /usr/lib/x86_64-linux-gnu/qt6/mkspecs/features/data/dummy.cpp
 	g++ -pipe -O2 -std=gnu++1z -Wall -Wextra -fPIC -dM -E -o obj/moc_predefs.h /usr/lib/x86_64-linux-gnu/qt6/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: obj/moc_mainwindow.cpp
+compiler_moc_header_make_all: obj/moc_mainwindow.cpp obj/moc_presentationdisplay.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) obj/moc_mainwindow.cpp
+	-$(DEL_FILE) obj/moc_mainwindow.cpp obj/moc_presentationdisplay.cpp
 obj/moc_mainwindow.cpp: include/mainwindow.h \
+		include/presentationdisplay.h \
 		obj/moc_predefs.h \
 		/usr/lib/qt6/libexec/moc
 	/usr/lib/qt6/libexec/moc $(DEFINES) --include /home/josef/github.com/josmac69/my_presenter/obj/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -I/home/josef/github.com/josmac69/my_presenter -I/home/josef/github.com/josmac69/my_presenter/include -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtPdfWidgets -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6/QtPdf -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/c++/12 -I/usr/include/x86_64-linux-gnu/c++/12 -I/usr/include/c++/12/backward -I/usr/lib/gcc/x86_64-linux-gnu/12/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include include/mainwindow.h -o obj/moc_mainwindow.cpp
+
+obj/moc_presentationdisplay.cpp: include/presentationdisplay.h \
+		obj/moc_predefs.h \
+		/usr/lib/qt6/libexec/moc
+	/usr/lib/qt6/libexec/moc $(DEFINES) --include /home/josef/github.com/josmac69/my_presenter/obj/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -I/home/josef/github.com/josmac69/my_presenter -I/home/josef/github.com/josmac69/my_presenter/include -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtPdfWidgets -I/usr/include/x86_64-linux-gnu/qt6/QtWidgets -I/usr/include/x86_64-linux-gnu/qt6/QtPdf -I/usr/include/x86_64-linux-gnu/qt6/QtGui -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I/usr/include/c++/12 -I/usr/include/x86_64-linux-gnu/c++/12 -I/usr/include/c++/12/backward -I/usr/lib/gcc/x86_64-linux-gnu/12/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include include/presentationdisplay.h -o obj/moc_presentationdisplay.cpp
 
 compiler_moc_objc_header_make_all:
 compiler_moc_objc_header_clean:
@@ -360,14 +372,22 @@ compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean
 
 ####### Compile
 
-obj/main.o: src/main.cpp include/mainwindow.h
+obj/main.o: src/main.cpp include/mainwindow.h \
+		include/presentationdisplay.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o obj/main.o src/main.cpp
 
-obj/mainwindow.o: src/mainwindow.cpp include/mainwindow.h
+obj/mainwindow.o: src/mainwindow.cpp include/mainwindow.h \
+		include/presentationdisplay.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o obj/mainwindow.o src/mainwindow.cpp
+
+obj/presentationdisplay.o: src/presentationdisplay.cpp include/presentationdisplay.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o obj/presentationdisplay.o src/presentationdisplay.cpp
 
 obj/moc_mainwindow.o: obj/moc_mainwindow.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o obj/moc_mainwindow.o obj/moc_mainwindow.cpp
+
+obj/moc_presentationdisplay.o: obj/moc_presentationdisplay.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o obj/moc_presentationdisplay.o obj/moc_presentationdisplay.cpp
 
 ####### Install
 

@@ -3,14 +3,13 @@
 
 #include <QMainWindow>
 #include <QPdfDocument>
-#include <QPdfPageRenderer>
-#include <QPainter>
-#include <QImage>
-#include <QKeyEvent>
-#include <QMouseEvent>
 #include <QLabel>
-#include <QPixmap>
-#include <QTimer>
+#include <QTreeView>
+#include <QPdfBookmarkModel>
+#include <QTextEdit>
+#include <QSplitter>
+#include <QImage>
+#include "presentationdisplay.h"
 
 class MainWindow : public QMainWindow
 {
@@ -22,18 +21,34 @@ public:
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
-    void mouseMoveEvent(QMouseEvent *event) override;
-    void paintEvent(QPaintEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
+
+private slots:
+    void onBookmarkActivated(const QModelIndex &index);
 
 private:
     void loadPdf(const QString &filePath);
-    void renderCurrentPage();
+    void setupUi();
+    void updateViews();
+    void detectScreens();
 
-    QPdfDocument pdf;
+    // Data
+    QPdfDocument *pdf;
+    QPdfBookmarkModel *bookmarkModel;
     int currentPage;
-    QPoint laserPointerPos;
     bool showLaser;
-    QImage currentSlide;
+
+    // UI Elements
+    QSplitter *mainSplitter;
+    QSplitter *rightSplitter;
+    
+    QLabel *currentSlideView;
+    QLabel *nextSlideView;
+    QTextEdit *notesView;
+    QTreeView *tocView;
+    
+    // Audience Window
+    PresentationDisplay *presentationDisplay;
 };
 
 #endif // MAINWINDOW_H
