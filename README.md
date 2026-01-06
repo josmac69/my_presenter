@@ -58,9 +58,9 @@ Run the application:
 | :--- | :--- |
 | **Right Arrow** / **Down** / **Space** | Next Slide |
 | **Left Arrow** / **Up** / **Backspace** | Previous Slide |
-| **L** | Toggle Laser Pointer |
+| **L** | Toggle Laser Pointer (60px Red Dot) |
 | **S** | Toggle **Split View** (Beamer Mode) |
-| **Esc** | Exit Application |
+| **Q** / **Esc** | Exit Application |
 
 ### Modes
 - **Standard Mode**: Assumes single-page slides. Notes are text-only.

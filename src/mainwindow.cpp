@@ -59,7 +59,15 @@ void MainWindow::setupUi()
     // Top Bar (Timers)
     QHBoxLayout *topBar = new QHBoxLayout();
     timeLabel = new QLabel("00:00:00");
-    elapsedLabel = new QLabel("00:00:00"); // Presentation timer
+    elapsedLabel = new QLabel("00:00:00");
+    
+    // Laser Pointer Toggle
+    laserCheckBox = new QCheckBox("Laser Pointer (L)");
+    connect(laserCheckBox, &QCheckBox::toggled, this, [this](bool checked){
+        showLaser = checked;
+        presentationDisplay->enableLaserPointer(checked);
+    });
+
     QFont timerFont = font();
     timerFont.setPointSize(14);
     timerFont.setBold(true);
@@ -68,6 +76,8 @@ void MainWindow::setupUi()
 
     topBar->addWidget(new QLabel("Time:"));
     topBar->addWidget(timeLabel);
+    topBar->addSpacing(20);
+    topBar->addWidget(laserCheckBox);
     topBar->addStretch();
     topBar->addWidget(new QLabel("Elapsed:"));
     topBar->addWidget(elapsedLabel);
@@ -110,6 +120,19 @@ void MainWindow::setupUi()
     rightLayout->addWidget(new QLabel("Notes:"));
     rightLayout->addWidget(notesView);
     rightLayout->addWidget(notesImageView);
+    
+    // Help Text
+    QLabel *helpLabel = new QLabel(
+        "<b>Hotkeys:</b><br>"
+        "Right/Space: Next Slide<br>"
+        "Left/Back: Prev Slide<br>"
+        "S: Toggle Split Mode (Notes)<br>"
+        "L: Toggle Laser Pointer<br>"
+        "Q/Esc: Quit"
+    );
+    helpLabel->setStyleSheet("color: #666; margin-top: 10px;");
+    rightLayout->addWidget(helpLabel);
+    rightLayout->addStretch();
 
     // Assemble Splitters
     mainSplitter = new QSplitter(Qt::Horizontal);
@@ -298,7 +321,8 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
             }
             break;
         case Qt::Key_L:
-            showLaser = !showLaser;
+            laserCheckBox->setChecked(!laserCheckBox->isChecked());
+            // Signal handler will update showLaser and call enableLaserPointer
              event->accept();
             break;
         case Qt::Key_S:

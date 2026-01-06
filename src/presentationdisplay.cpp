@@ -1,10 +1,11 @@
 #include "presentationdisplay.h"
 
 PresentationDisplay::PresentationDisplay(QWidget *parent)
-    : QWidget(parent), pdf(nullptr), currentPage(0), splitView(false), showLaser(false)
+    : QWidget(parent), pdf(nullptr), currentPage(0), splitView(false)
 {
-    setMouseTracking(true);
+    // setMouseTracking(true); // Redundant with QCursor
     setAttribute(Qt::WA_OpaquePaintEvent);
+    laserCursor = createLaserCursor();
 }
 
 void PresentationDisplay::setDocument(QPdfDocument *doc)
@@ -35,11 +36,41 @@ void PresentationDisplay::refreshSlide()
     update();
 }
 
-void PresentationDisplay::setLaserPointer(bool active, const QPoint &pos)
+void PresentationDisplay::enableLaserPointer(bool active)
 {
-    showLaser = active;
-    laserPos = pos;
-    update();
+    if (active) {
+        if (laserCursor.bitmap().isNull()) {
+             laserCursor = createLaserCursor();
+        }
+        setCursor(laserCursor);
+    } else {
+        unsetCursor();
+    }
+}
+
+QCursor PresentationDisplay::createLaserCursor()
+{
+    int size = 60; // 60px wide (2x bigger)
+    QPixmap pixmap(size, size);
+    pixmap.fill(Qt::transparent);
+
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+    
+    // Radial gradient for "blurry borders"
+    QRadialGradient gradient(size/2, size/2, size/2);
+    // Center opacity ~50% (128/255)
+    gradient.setColorAt(0.0, QColor(255, 0, 0, 128)); 
+    // Midpoint opacity ~40% (100/255)
+    gradient.setColorAt(0.5, QColor(255, 0, 0, 100)); 
+    // Edge transparent
+    gradient.setColorAt(1.0, QColor(255, 0, 0, 0));   
+    
+    painter.setBrush(gradient);
+    painter.setPen(Qt::NoPen);
+    painter.drawEllipse(0, 0, size, size);
+
+    return QCursor(pixmap);
 }
 
 void PresentationDisplay::resizeEvent(QResizeEvent *)
@@ -101,18 +132,15 @@ void PresentationDisplay::paintEvent(QPaintEvent *)
         painter.drawImage(slideRect, cachedSlide);
     }
 
-    if (showLaser) {
-        painter.setBrush(Qt::red);
-        painter.setPen(Qt::NoPen);
-        // Laser pointer needs to be visible, size independent of DPI?
-        // 10px logical size is usually fine.
-        painter.drawEllipse(laserPos, 10, 10);
+    if (!cachedSlide.isNull()) {
+        // Center the slide while maintaining aspect ratio
+        QSize slideSize = cachedSlide.size(); // Logical size due to DPR
+        slideSize.scale(size(), Qt::KeepAspectRatio);
+        
+        QRect slideRect(QPoint(0, 0), slideSize);
+        slideRect.moveCenter(rect().center());
+        
+        painter.drawImage(slideRect, cachedSlide);
     }
 }
-
-void PresentationDisplay::mouseMoveEvent(QMouseEvent *event)
-{
-    if (showLaser) {
-        setLaserPointer(true, event->pos());
-    }
-}
+// mouseMoveEvent removed as we use QCursor now

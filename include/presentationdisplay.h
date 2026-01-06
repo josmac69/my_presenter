@@ -22,23 +22,21 @@ public:
     // Explicit update trigger if needed, though setters usually trigger repaint
     void refreshSlide();
     
-    void setLaserPointer(bool active, const QPoint &pos = QPoint());
-
+    void enableLaserPointer(bool active);
+    
 protected:
     void paintEvent(QPaintEvent *event) override;
-    void mouseMoveEvent(QMouseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
 
 private:
     void renderCurrentSlide();
+    QCursor createLaserCursor();
 
     QPdfDocument *pdf;
     int currentPage;
     bool splitView;
-    
     QImage cachedSlide;
-    bool showLaser;
-    QPoint laserPos;
+    QCursor laserCursor;
 };
 
 #endif // PRESENTATIONDISPLAY_H
