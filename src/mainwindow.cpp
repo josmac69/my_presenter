@@ -15,6 +15,8 @@ MainWindow::MainWindow(QWidget *parent)
     bookmarkModel = new QPdfBookmarkModel(this);
     bookmarkModel->setDocument(pdf);
     presentationDisplay = new PresentationDisplay(nullptr); // Null parent = separate window
+    presentationDisplay->setDocument(pdf);
+    presentationDisplay->installEventFilter(this); // Capture keys from audience window
 
     clockTimer = new QTimer(this);
     connect(clockTimer, &QTimer::timeout, this, &MainWindow::updateTimers);
@@ -30,6 +32,13 @@ MainWindow::MainWindow(QWidget *parent)
             loadPdf(fileName);
             startTime = QTime::currentTime();
             timerRunning = true;
+        }
+    });
+
+    connect(pdf, &QPdfDocument::statusChanged, this, [this](QPdfDocument::Status status){
+        if (status == QPdfDocument::Status::Ready) {
+            updateViews();
+            presentationDisplay->setDocument(pdf);
         }
     });
 }
@@ -142,43 +151,60 @@ void MainWindow::detectScreens()
 
 void MainWindow::loadPdf(const QString &filePath)
 {
+    currentPage = 0;
     pdf->load(filePath);
-    if (pdf->status() == QPdfDocument::Status::Ready) {
-        updateViews();
-    } else {
-        QMessageBox::critical(this, "Error", "Failed to load PDF.");
-    }
+    // UI update handled by statusChanged signal
 }
 
 void MainWindow::updateViews()
 {
     if (pdf->status() != QPdfDocument::Status::Ready) return;
 
-    // 1. Render Current Side
-    // For SplitView, we need the Left Half for Audience/Console, Right Half for Notes
-    // For SplitView, we need the Left Half for Audience/Console, Right Half for Notes
-    
-    // We render the full page first, then crop logic handle it
-    // Note: Rendering full resolution then cropping is easier for now
-    QSize renderSize = pdf->pagePointSize(currentPage).toSize() * 2; // 2x scale for quality
-    
-    QImage currentFull = pdf->render(currentPage, renderSize);
+    // 0. Render Logic (first)
     QImage audienceImg, notesImg;
+    {
+        // Calculate target size for the Current Slide preview
+        QSize targetSize = currentSlideView->size() * currentSlideView->devicePixelRatio();
+        if (targetSize.isEmpty()) {
+             targetSize = QSize(400, 300) * currentSlideView->devicePixelRatio(); // Fallback
+        }
 
-    if (useSplitView) {
-        int w = currentFull.width() / 2;
-        int h = currentFull.height();
-        audienceImg = currentFull.copy(0, 0, w, h);
-        notesImg = currentFull.copy(w, 0, w, h);
-    } else {
-        audienceImg = currentFull;
-        notesImg = QImage(); // No image notes
+        QSizeF pageSize = pdf->pagePointSize(currentPage);
+        
+        QSize renderSize(100, 100); // Default safe size
+        if (!pageSize.isEmpty()) {
+            if (useSplitView) {
+                // In split view, the slide is the left half.
+                QSizeF slideSize(pageSize.width() / 2.0, pageSize.height());
+                
+                // Scale factor to fit the half-slide into targetSize
+                QSize scaledHalf = slideSize.scaled(targetSize, Qt::KeepAspectRatio).toSize();
+                qreal scale = (slideSize.width() > 0) ? ((qreal)scaledHalf.width() / slideSize.width()) : 1.0;
+                
+                renderSize = QSize(pageSize.width() * scale, pageSize.height() * scale);
+            } else {
+                renderSize = pageSize.scaled(targetSize, Qt::KeepAspectRatio).toSize();
+            }
+        }
+        
+        // Ensure valid render size
+        if (renderSize.isEmpty()) renderSize = QSize(100, 100);
+
+        QImage currentFull = pdf->render(currentPage, renderSize);
+
+        if (useSplitView) {
+            int w = currentFull.width() / 2;
+            int h = currentFull.height();
+            if (w > 0 && h > 0) {
+                audienceImg = currentFull.copy(0, 0, w, h);
+                notesImg = currentFull.copy(w, 0, w, h);
+            }
+        } else {
+            audienceImg = currentFull;
+        }
     }
 
-    currentSlideView->setPixmap(QPixmap::fromImage(audienceImg).scaled(currentSlideView->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    presentationDisplay->updateSlide(audienceImg);
-
-    // Beamer Notes Update
+    // 1. Update Notes (Mockup)
     if (useSplitView) {
         notesView->hide();
         notesImageView->show();
@@ -188,6 +214,15 @@ void MainWindow::updateViews()
         notesView->show();
         notesView->setText(QString("Notes for Slide %1").arg(currentPage + 1));
     }
+
+    // 2. Update Audience Display (Metadata only)
+    presentationDisplay->setSplitMode(useSplitView);
+    presentationDisplay->setPage(currentPage);
+
+    // 3. Update Console View
+
+    currentSlideView->setPixmap(QPixmap::fromImage(audienceImg).scaled(currentSlideView->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    // presentationDisplay->updateSlide(audienceImg); // REMOVED
 
     // 3. Render Next Slide Preview
     if (currentPage + 1 < pdf->pageCount()) {
@@ -269,6 +304,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         case Qt::Key_S:
             toggleSplitView();
             break;
+        case Qt::Key_Q:
         case Qt::Key_Escape:
             close();
             break;
@@ -281,4 +317,14 @@ void MainWindow::closeEvent(QCloseEvent *event)
 {
     presentationDisplay->close();
     QMainWindow::closeEvent(event);
+}
+
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == presentationDisplay && event->type() == QEvent::KeyPress) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent*>(event);
+        keyPressEvent(keyEvent); // Forward key event to main window logic
+        return true; // Mark handled
+    }
+    return QMainWindow::eventFilter(watched, event);
 }
