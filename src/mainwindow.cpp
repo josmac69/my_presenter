@@ -65,6 +65,7 @@ void MainWindow::setupUi()
     laserCheckBox = new QCheckBox("Laser Pointer (L)");
     connect(laserCheckBox, &QCheckBox::toggled, this, [this](bool checked){
         showLaser = checked;
+        if (checked && zoomCheckBox->isChecked()) zoomCheckBox->setChecked(false);
         presentationDisplay->enableLaserPointer(checked);
     });
 
@@ -81,7 +82,62 @@ void MainWindow::setupUi()
     topBar->addStretch();
     topBar->addWidget(new QLabel("Elapsed:"));
     topBar->addWidget(elapsedLabel);
+    topBar->addWidget(elapsedLabel);
+    // mainLayout->addLayout(topBar); // Add later or keep sequence
+
+    // Zoom Controls Bar
+    QHBoxLayout *zoomBar = new QHBoxLayout();
+    zoomCheckBox = new QCheckBox("Zoom (Z)");
+    connect(zoomCheckBox, &QCheckBox::toggled, this, [this](bool checked){
+        // Exclusive with laser? PresentationDisplay handles overrides but UI should sync
+        if (checked && laserCheckBox->isChecked()) laserCheckBox->setChecked(false);
+        presentationDisplay->enableZoom(checked);
+    });
+    
+    QSlider *sizeSlider = new QSlider(Qt::Horizontal);
+    sizeSlider->setRange(250, 1500);
+    sizeSlider->setValue(250); // Default
+    sizeSlider->setFixedWidth(150);
+    
+    QSlider *magSlider = new QSlider(Qt::Horizontal);
+    magSlider->setRange(2, 5);
+    magSlider->setValue(2); // Default
+    magSlider->setFixedWidth(100);
+    
+    // Store pointer for key updates? Or just leave local if logic is purely signal based?
+    // We needed member for key press sync.
+    zoomSizeSlider = sizeSlider;
+    zoomMagSlider = magSlider;
+    
+    QLabel *sizeLabel = new QLabel("Size: 250px");
+    QLabel *magLabel = new QLabel("Mag: 2x");
+    
+    connect(sizeSlider, &QSlider::valueChanged, this, [this, sizeLabel](int val){
+        sizeLabel->setText(QString("Size: %1px").arg(val));
+        presentationDisplay->setZoomSettings(zoomMagSlider->value(), val);
+        // Force focus back to main window so keys work? Sliders steal focus?
+        // setFocus();
+        presentationDisplay->setFocus(); // Actually we want MainWindow to keep focus
+    });
+    
+    connect(magSlider, &QSlider::valueChanged, this, [this, magLabel](int val){
+        magLabel->setText(QString("Mag: %1x").arg(val));
+        presentationDisplay->setZoomSettings(val, zoomSizeSlider->value());
+    });
+
+    zoomBar->addWidget(zoomCheckBox);
+    zoomBar->addSpacing(15);
+    zoomBar->addWidget(new QLabel("Dia:"));
+    zoomBar->addWidget(sizeSlider);
+    zoomBar->addWidget(sizeLabel);
+    zoomBar->addSpacing(15);
+    zoomBar->addWidget(new QLabel("Zoom:"));
+    zoomBar->addWidget(magSlider);
+    zoomBar->addWidget(magLabel);
+    zoomBar->addStretch();
+
     mainLayout->addLayout(topBar);
+    mainLayout->addLayout(zoomBar);
     
     // TOC View (Left)
     tocView = new QTreeView(this);
@@ -128,7 +184,7 @@ void MainWindow::setupUi()
         "Left/Back: Prev Slide<br>"
         "Home/End: First/Last Slide<br>"
         "S: Toggle Split Mode (Notes)<br>"
-        "L: Toggle Laser Pointer<br>"
+        "L: Laser | Z: Zoom<br>"
         "Q/Esc: Quit"
     );
     helpLabel->setStyleSheet("color: #666; margin-top: 10px;");
@@ -336,6 +392,10 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         case Qt::Key_L:
             laserCheckBox->setChecked(!laserCheckBox->isChecked());
             // Signal handler will update showLaser and call enableLaserPointer
+             event->accept();
+            break;
+        case Qt::Key_Z:
+            zoomCheckBox->setChecked(!zoomCheckBox->isChecked());
              event->accept();
             break;
         case Qt::Key_S:

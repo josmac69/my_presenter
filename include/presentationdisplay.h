@@ -23,9 +23,12 @@ public:
     void refreshSlide();
     
     void enableLaserPointer(bool active);
+    void enableZoom(bool active);
+    void setZoomSettings(float factor, int diameter);
     
 protected:
     void paintEvent(QPaintEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
 
 private:
@@ -36,7 +39,16 @@ private:
     int currentPage;
     bool splitView;
     QImage cachedSlide;
+    
+    // Laser
     QCursor laserCursor;
+    bool laserActive; // Track state for disabling mouse tracking if neither active?
+
+    // Zoom
+    bool zoomActive;
+    float zoomFactor;
+    int zoomDiameter;
+    QPoint mousePos;
 };
 
 #endif // PRESENTATIONDISPLAY_H

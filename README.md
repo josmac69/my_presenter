@@ -25,6 +25,9 @@ A C++ PDF presentation tool built with Qt6, inspired by tools like **Pympress**.
     - Intuitive keyboard controls.
     - Clickable TOC sidebar.
 - **Laser Pointer**: Toggle a virtual laser pointer on the audience screen (Toggle with `L`).
+- **Zoom Pointer**: Magnifying glass effect at mouse cursor location. (Toggle with `Z`).
+    - Configurable **Size** (250px - 1500px).
+    - Configurable **Magnification** (2x - 5x).
 
 ## Prerequisites
 
@@ -60,6 +63,7 @@ Run the application:
 | **Left Arrow** / **Up** / **Backspace** | Previous Slide |
 | **Home** / **End** | Jump to First / Last Slide |
 | **L** | Toggle Laser Pointer (60px Red Dot) |
+| **Z** | Toggle **Zoom Pointer** (Magnifier) |
 | **S** | Toggle **Split View** (Beamer Mode) |
 | **Q** / **Esc** | Exit Application |
 

@@ -10,6 +10,7 @@
 #include <QSplitter>
 #include <QImage>
 #include <QCheckBox>
+#include <QSlider>
 #include "presentationdisplay.h"
 
 #include <QTime>
@@ -63,6 +64,9 @@ private:
     QLabel *timeLabel;
     QLabel *elapsedLabel;
     QCheckBox *laserCheckBox;
+    QCheckBox *zoomCheckBox;
+    QSlider *zoomSizeSlider;
+    QSlider *zoomMagSlider;
     
     // Audience Window
     PresentationDisplay *presentationDisplay;

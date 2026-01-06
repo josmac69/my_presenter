@@ -1,9 +1,12 @@
 #include "presentationdisplay.h"
+#include <QPainterPath>
+#include <QPen>
 
 PresentationDisplay::PresentationDisplay(QWidget *parent)
-    : QWidget(parent), pdf(nullptr), currentPage(0), splitView(false)
+    : QWidget(parent), pdf(nullptr), currentPage(0), splitView(false),
+      laserActive(false), zoomActive(false), zoomFactor(2.0f), zoomDiameter(250)
 {
-    // setMouseTracking(true); // Redundant with QCursor
+    setMouseTracking(true);
     setAttribute(Qt::WA_OpaquePaintEvent);
     laserCursor = createLaserCursor();
 }
@@ -38,7 +41,10 @@ void PresentationDisplay::refreshSlide()
 
 void PresentationDisplay::enableLaserPointer(bool active)
 {
+    laserActive = active;
     if (active) {
+        if (zoomActive) enableZoom(false); 
+        
         if (laserCursor.bitmap().isNull()) {
              laserCursor = createLaserCursor();
         }
@@ -46,6 +52,26 @@ void PresentationDisplay::enableLaserPointer(bool active)
     } else {
         unsetCursor();
     }
+    update();
+}
+
+void PresentationDisplay::enableZoom(bool active)
+{
+    zoomActive = active;
+    if (active) {
+        if (laserActive) enableLaserPointer(false);
+        setCursor(Qt::BlankCursor);
+    } else {
+        unsetCursor();
+    }
+    update();
+}
+
+void PresentationDisplay::setZoomSettings(float factor, int diameter)
+{
+    zoomFactor = factor;
+    zoomDiameter = diameter;
+    if (zoomActive) update();
 }
 
 QCursor PresentationDisplay::createLaserCursor()
@@ -77,6 +103,14 @@ void PresentationDisplay::resizeEvent(QResizeEvent *)
 {
     // Re-render on resize to maintain crisp quality
     refreshSlide();
+}
+
+void PresentationDisplay::mouseMoveEvent(QMouseEvent *event)
+{
+    mousePos = event->pos();
+    if (zoomActive) {
+        update();
+    }
 }
 
 void PresentationDisplay::renderCurrentSlide()
@@ -121,26 +155,51 @@ void PresentationDisplay::paintEvent(QPaintEvent *)
     // Draw black background
     painter.fillRect(rect(), Qt::black);
 
-    if (!cachedSlide.isNull()) {
-        // Center the slide while maintaining aspect ratio
-        QSize slideSize = cachedSlide.size(); // Logical size due to DPR
-        slideSize.scale(size(), Qt::KeepAspectRatio);
-        
-        QRect slideRect(QPoint(0, 0), slideSize);
-        slideRect.moveCenter(rect().center());
-        
-        painter.drawImage(slideRect, cachedSlide);
-    }
+    if (cachedSlide.isNull()) return;
 
-    if (!cachedSlide.isNull()) {
-        // Center the slide while maintaining aspect ratio
-        QSize slideSize = cachedSlide.size(); // Logical size due to DPR
-        slideSize.scale(size(), Qt::KeepAspectRatio);
+    // Center the slide while maintaining aspect ratio
+    QSize slideSize = cachedSlide.size(); // Logical size due to DPR
+    slideSize.scale(size(), Qt::KeepAspectRatio);
+    
+    QRect slideRect(QPoint(0, 0), slideSize);
+    slideRect.moveCenter(rect().center());
+    
+    painter.drawImage(slideRect, cachedSlide);
+
+    // Draw Magnifier
+    if (zoomActive) {
+        painter.save();
         
-        QRect slideRect(QPoint(0, 0), slideSize);
-        slideRect.moveCenter(rect().center());
+        int r = zoomDiameter / 2;
+        QPoint center = mousePos;
         
-        painter.drawImage(slideRect, cachedSlide);
+        QPainterPath path;
+        path.addEllipse(center, r, r);
+        painter.setClipPath(path);
+        
+        // Source Rect
+        float srcR = r / zoomFactor;
+        
+        // We need to map screen coordinates to image coordinates
+        double scaleX = (double)cachedSlide.width() / slideRect.width(); 
+        double scaleY = (double)cachedSlide.height() / slideRect.height();
+        
+        QRectF sourceRect(center.x() - srcR, center.y() - srcR, srcR * 2, srcR * 2);
+        
+        double imgSrcX = (sourceRect.x() - slideRect.x()) * scaleX;
+        double imgSrcY = (sourceRect.y() - slideRect.y()) * scaleY;
+        double imgSrcW = sourceRect.width() * scaleX;
+        double imgSrcH = sourceRect.height() * scaleY;
+        
+        painter.drawImage(QRect(center.x() - r, center.y() - r, zoomDiameter, zoomDiameter), 
+                          cachedSlide, 
+                          QRectF(imgSrcX, imgSrcY, imgSrcW, imgSrcH));
+                          
+        painter.setClipping(false);
+        painter.setPen(QPen(Qt::darkGray, 2));
+        painter.setBrush(Qt::NoBrush);
+        painter.drawEllipse(center, r, r);
+        
+        painter.restore();
     }
 }
-// mouseMoveEvent removed as we use QCursor now
