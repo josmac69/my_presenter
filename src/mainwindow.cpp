@@ -126,6 +126,7 @@ void MainWindow::setupUi()
         "<b>Hotkeys:</b><br>"
         "Right/Space: Next Slide<br>"
         "Left/Back: Prev Slide<br>"
+        "Home/End: First/Last Slide<br>"
         "S: Toggle Split Mode (Notes)<br>"
         "L: Toggle Laser Pointer<br>"
         "Q/Esc: Quit"
@@ -317,6 +318,18 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         case Qt::Key_Backspace:
             if (currentPage > 0) {
                 currentPage--;
+                updateViews();
+            }
+            break;
+        case Qt::Key_Home:
+            if (currentPage != 0) {
+                currentPage = 0;
+                updateViews();
+            }
+            break;
+        case Qt::Key_End:
+            if (currentPage != pdf->pageCount() - 1) {
+                currentPage = pdf->pageCount() - 1;
                 updateViews();
             }
             break;

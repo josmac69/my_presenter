@@ -58,6 +58,7 @@ Run the application:
 | :--- | :--- |
 | **Right Arrow** / **Down** / **Space** | Next Slide |
 | **Left Arrow** / **Up** / **Backspace** | Previous Slide |
+| **Home** / **End** | Jump to First / Last Slide |
 | **L** | Toggle Laser Pointer (60px Red Dot) |
 | **S** | Toggle **Split View** (Beamer Mode) |
 | **Q** / **Esc** | Exit Application |
