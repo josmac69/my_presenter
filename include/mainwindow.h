@@ -38,6 +38,7 @@ private:
     void setupUi();
     void updateViews();
     void detectScreens();
+    void syncTocWithPage(int page);
 
     // Data
     QPdfDocument *pdf;

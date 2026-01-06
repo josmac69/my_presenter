@@ -193,8 +193,27 @@ void MainWindow::setupUi()
 
     // Assemble Splitters
     mainSplitter = new QSplitter(Qt::Horizontal);
-    mainSplitter->addWidget(tocView);
-    mainSplitter->addWidget(currentSlideView);
+    
+    // Left: TOC with Title
+    QWidget *leftContainer = new QWidget();
+    QVBoxLayout *leftLayout = new QVBoxLayout(leftContainer);
+    leftLayout->setContentsMargins(0, 0, 0, 0);
+    QLabel *chaptersLabel = new QLabel("Chapters");
+    chaptersLabel->setStyleSheet("font-weight: bold; padding: 5px;");
+    leftLayout->addWidget(chaptersLabel);
+    leftLayout->addWidget(tocView);
+    mainSplitter->addWidget(leftContainer);
+    
+    // Center: Slide with Title
+    QWidget *centerContainer = new QWidget();
+    QVBoxLayout *centerLayout = new QVBoxLayout(centerContainer);
+    centerLayout->setContentsMargins(0, 0, 0, 0);
+    QLabel *currentSlideLabel = new QLabel("Current Slide");
+    currentSlideLabel->setStyleSheet("font-weight: bold; padding: 5px;");
+    centerLayout->addWidget(currentSlideLabel);
+    centerLayout->addWidget(currentSlideView);
+    mainSplitter->addWidget(centerContainer);
+
     mainSplitter->addWidget(rightContainer);
     
     // Initial sizes
@@ -233,6 +252,44 @@ void MainWindow::detectScreens()
         // Single screen mode: Just show it as a normal window
         presentationDisplay->resize(800, 600);
         presentationDisplay->show();
+    }
+}
+
+void MainWindow::syncTocWithPage(int page)
+{
+    if (!bookmarkModel) return;
+
+    QModelIndex bestMatch;
+    int bestPage = -1;
+
+    // Helper lambda for recursive search
+    std::function<void(const QModelIndex&)> search = 
+        [&](const QModelIndex &parent) {
+        int rowCount = bookmarkModel->rowCount(parent);
+        for (int i = 0; i < rowCount; ++i) {
+            QModelIndex idx = bookmarkModel->index(i, 0, parent);
+            int pageNum = idx.data((int)QPdfBookmarkModel::Role::Page).toInt();
+            
+            if (pageNum <= page) {
+                if (pageNum > bestPage) {
+                    bestPage = pageNum;
+                    bestMatch = idx;
+                }
+            }
+            
+            if (bookmarkModel->hasChildren(idx)) {
+                search(idx);
+            }
+        }
+    };
+
+    search(QModelIndex());
+
+    if (bestMatch.isValid()) {
+        tocView->setCurrentIndex(bestMatch);
+        tocView->scrollTo(bestMatch);
+    } else {
+        tocView->clearSelection();
     }
 }
 
@@ -329,6 +386,8 @@ void MainWindow::updateViews()
     }
     // 4. Update Notes (Mockup)
     notesView->setText(QString("Notes for Slide %1").arg(currentPage + 1));
+    
+    syncTocWithPage(currentPage);
 }
 
 void MainWindow::onBookmarkActivated(const QModelIndex &index)
