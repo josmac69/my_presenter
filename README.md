@@ -1,31 +1,68 @@
 # my_presenter
 
-This repository contains a C++ Qt project.
+A simplified C++ PDF presentation tool built with Qt6. This application allows you to present PDF slides in fullscreen mode with a built-in virtual laser pointer.
 
-## Repository Structure
+## Features
 
-- `src/`: Contains source code files (`.cpp`).
-- `include/`: Contains header files (`.h`, `.hpp`).
-- `obj/`: Used for intermediate object files (`.o`, `.moc`, etc.) generated during the build process.
-- `bin/`: Contains the final executable binaries.
-- `Makefile`: The build wrapper script.
-- `my_presenter.pro`: The Qt project configuration file.
+- **PDF Rendering**: Opens and displays PDF files using Qt's PDF module.
+- **Fullscreen Presentation**: Automatically launches in fullscreen mode for professional presentations.
+- **Navigation**: intuitive keyboard controls for slide navigation.
+- **Laser Pointer**: specific key toggle to enable a red virtual laser pointer that follows the mouse cursor.
 
 ## Prerequisites
 
-- **Qt Development Libraries**: This project requires Qt 6.
-  - Specifically: `Widgets`, `Gui`, `Core`, and `Pdf` modules.
-  - On Debian/Ubuntu: `sudo apt install qt6-base-dev qt6-pdf-dev`
-- **qmake6**: The build system relies on `qmake6` (usually included in `qt6-base-dev` or `qt6-base-dev-tools`).
+- **Qt 6**: Requires Qt 6 Core, Gui, Widgets, and Pdf modules.
+- **Build Tools**: `make`, `g++`, `qmake6`.
 
-## Makefile Usage
+## Installation & Build
 
-The `Makefile` wraps `qmake` to simplify the build process.
+### 1. Install Dependencies
+We provide a helper script for Debian-based systems (Debian, Ubuntu, etc.) to automatically check and install missing dependencies:
 
-- `make` or `make all`: Generates the Makefile using `qmake6`, compiles the source files, runs `moc`, and links the executable in `bin/app`.
-- `make clean`: Removes the `obj` and `bin` directories and temporary build files.
+```bash
+./install_dependencies.sh
+```
 
-To run the application after building:
+Alternatively, you can manually install the required packages:
+```bash
+sudo apt update
+sudo apt install qt6-base-dev qt6-pdf-dev build-essential
+```
+
+### 2. Build the Application
+Use the included `Makefile` to build the project. This will automatically invoke `qmake6` to configure the build.
+
+```bash
+make
+```
+
+To clean build artifacts:
+```bash
+make clean
+```
+
+## Usage
+
+Run the compiled executable from the build directory:
+
 ```bash
 ./bin/app
 ```
+
+### Controls
+
+| Key | Action |
+| :--- | :--- |
+| **Right Arrow** / **Down Arrow** | Next Slide |
+| **Left Arrow** / **Up Arrow** | Previous Slide |
+| **L** | Toggle Laser Pointer |
+| **Esc** | Exit Application |
+
+## Repository Structure
+
+- `src/`: Source code (`main.cpp`, `mainwindow.cpp`).
+- `include/`: Header files (`mainwindow.h`).
+- `bin/`: Compiled executable (`app`).
+- `obj/`: Interface object files.
+- `my_presenter.pro`: Qt project configuration.
+- `Makefile`: Build wrapper script.
