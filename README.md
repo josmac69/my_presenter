@@ -37,7 +37,7 @@ A C++ PDF presentation tool built with Qt6, inspired by tools like **Pympress**.
 ## Installation & Build
 
 ### 1. Install Dependencies
-We provide a helper script for Debian-based systems to checks and install dependencies:
+We provide a helper script for Debian-based systems (apt) and macOS (Homebrew) to check and install dependencies:
 
 ```bash
 ./install_dependencies.sh
