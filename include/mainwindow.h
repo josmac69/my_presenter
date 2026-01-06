@@ -11,6 +11,8 @@
 #include <QImage>
 #include "presentationdisplay.h"
 
+#include <QTime>
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -25,6 +27,8 @@ protected:
 
 private slots:
     void onBookmarkActivated(const QModelIndex &index);
+    void updateTimers();
+    void toggleSplitView();
 
 private:
     void loadPdf(const QString &filePath);
@@ -37,6 +41,12 @@ private:
     QPdfBookmarkModel *bookmarkModel;
     int currentPage;
     bool showLaser;
+    bool useSplitView;
+
+    // Timers
+    QTimer *clockTimer;
+    QTime startTime;
+    bool timerRunning;
 
     // UI Elements
     QSplitter *mainSplitter;
@@ -44,8 +54,12 @@ private:
     
     QLabel *currentSlideView;
     QLabel *nextSlideView;
-    QTextEdit *notesView;
+    QTextEdit *notesView;      // For text notes
+    QLabel *notesImageView;    // For visual Beamer notes (split right half)
     QTreeView *tocView;
+    
+    QLabel *timeLabel;
+    QLabel *elapsedLabel;
     
     // Audience Window
     PresentationDisplay *presentationDisplay;

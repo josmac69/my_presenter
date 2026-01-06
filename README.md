@@ -1,6 +1,11 @@
 # my_presenter
 
-A C++ PDF presentation tool built with Qt6, featuring a dual-window "Presenter Console" designed for professional use.
+A C++ PDF presentation tool built with Qt6, inspired by tools like **Pympress**. It features a dual-window "Presenter Console" designed for professional use with support for Beamer notes and presentation timing.
+
+## What's New
+- **Presentation Timers**: Added Wall Clock and Elapsed Presentation Time to the console.
+- **Beamer Notes Support**: Added logic to handle split-page PDFs (Left=Slide, Right=Notes). Toggle with `S`.
+- **Improved Console**: Layout updated to include timer bar and toggleable visual notes.
 
 ## Features
 
@@ -9,7 +14,12 @@ A C++ PDF presentation tool built with Qt6, featuring a dual-window "Presenter C
     - **Presenter Console**: Runs on the Primary Screen. Includes:
         - **Current Slide**: Large view of what the audience sees.
         - **Next Slide Preview**: Shows the upcoming slide.
-        - **Notes View**: Basic text area for speaker notes.
+        - **Timers**:
+            - **Current Time**: Standard wall clock.
+            - **Elapsed Time**: Tracks duration since the presentation started.
+        - **Notes View**:
+            - Standard Mode: Text area for separate notes.
+            - **Beamer Mode**: Visual view of the right-half of the slide (for split LaTeX Beamer slides).
         - **Table of Contents**: Navigate using PDF bookmarks (chapters).
 - **Control & Navigation**:
     - Intuitive keyboard controls.
@@ -49,7 +59,14 @@ Run the application:
 | **Right Arrow** / **Down** / **Space** | Next Slide |
 | **Left Arrow** / **Up** / **Backspace** | Previous Slide |
 | **L** | Toggle Laser Pointer |
+| **S** | Toggle **Split View** (Beamer Mode) |
 | **Esc** | Exit Application |
+
+### Modes
+- **Standard Mode**: Assumes single-page slides. Notes are text-only.
+- **Split View (Beamer Mode) ('S')**: Assumes double-width slides (common in LaTeX Beamer with notes).
+    - **Left Half**: Projected to Audience.
+    - **Right Half**: Shown in Presenter Console as Notes.
 
 **Note**: To control the presentation, ensure the **Presenter Console** window has focus.
 
