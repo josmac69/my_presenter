@@ -136,8 +136,8 @@ void MainWindow::setupUi()
     zoomBar->addWidget(magLabel);
     zoomBar->addStretch();
 
-    mainLayout->addLayout(topBar);
-    mainLayout->addLayout(zoomBar);
+    // mainLayout->addLayout(topBar); // Moved to bottom
+    // mainLayout->addLayout(zoomBar); // Moved to bottom
     
     // TOC View (Left)
     tocView = new QTreeView(this);
@@ -202,6 +202,13 @@ void MainWindow::setupUi()
     mainSplitter->setStretchFactor(2, 1);
 
     mainLayout->addWidget(mainSplitter);
+    
+    // Controls Layout (Bottom)
+    QVBoxLayout *controlsLayout = new QVBoxLayout();
+    controlsLayout->addLayout(topBar);
+    controlsLayout->addLayout(zoomBar);
+    mainLayout->addLayout(controlsLayout);
+
     setCentralWidget(centralWidget);
     
     setWindowTitle("Presenter Console");
