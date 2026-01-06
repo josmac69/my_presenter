@@ -8,10 +8,13 @@
 #include <QPdfBookmarkModel>
 #include <QTextEdit>
 #include <QSplitter>
-#include <QImage>
+#include <QScreen>
+#include <QPushButton>
+#include "screenselectorwidget.h"
+#include <QShortcut>
+#include "presentationdisplay.h"
 #include <QCheckBox>
 #include <QSlider>
-#include "presentationdisplay.h"
 
 #include <QTime>
 
@@ -24,14 +27,26 @@ public:
     ~MainWindow();
 
 protected:
-    void keyPressEvent(QKeyEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
-    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private slots:
     void onBookmarkActivated(const QModelIndex &index);
     void updateTimers();
     void toggleSplitView();
+
+    // Hotkey Actions
+    void nextSlide();
+    void prevSlide();
+    void firstSlide();
+    void lastSlide();
+    void toggleLaser();
+    void toggleZoom();
+    void quitApp();
+    
+    // Screen Management
+    void switchScreens();
+    void onScreenCountChanged();
+    void onAudienceScreenSelected(int index);
 
 private:
     void loadPdf(const QString &filePath);
@@ -39,6 +54,8 @@ private:
     void updateViews();
     void detectScreens();
     void syncTocWithPage(int page);
+    void setupShortcuts(QWidget *target);
+    void updateScreenControls();
 
     // Data
     QPdfDocument *pdf;
@@ -51,6 +68,10 @@ private:
     QTimer *clockTimer;
     QTime startTime;
     bool timerRunning;
+
+    // Screen Management
+    QPushButton *switchScreenButton;
+    ScreenSelectorWidget *screenSelector;
 
     // UI Elements
     QSplitter *mainSplitter;

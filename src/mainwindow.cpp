@@ -16,15 +16,24 @@ MainWindow::MainWindow(QWidget *parent)
     bookmarkModel->setDocument(pdf);
     presentationDisplay = new PresentationDisplay(nullptr); // Null parent = separate window
     presentationDisplay->setDocument(pdf);
-    presentationDisplay->installEventFilter(this); // Capture keys from audience window
+    // presentationDisplay->installEventFilter(this); // REMOVED: Capture keys from audience window
 
     clockTimer = new QTimer(this);
     connect(clockTimer, &QTimer::timeout, this, &MainWindow::updateTimers);
     clockTimer->start(1000);
 
     setupUi();
+    
+    // Setup shortcuts for both windows
+    setupShortcuts(this);
+    setupShortcuts(presentationDisplay);
+
     detectScreens();
 
+    if (windowHandle()) {
+         connect(windowHandle(), &QWindow::screenChanged, this, &MainWindow::updateScreenControls);
+    }
+    
     // Auto-open for convenience
     QTimer::singleShot(0, this, [this](){
         QString fileName = QFileDialog::getOpenFileName(this, "Open PDF", "", "PDF Files (*.pdf)");
@@ -51,6 +60,81 @@ MainWindow::~MainWindow()
     }
 }
 
+void MainWindow::setupShortcuts(QWidget *target)
+{
+    // Navigation
+    new QShortcut(QKeySequence(Qt::Key_Right), target, this, &MainWindow::nextSlide);
+    new QShortcut(QKeySequence(Qt::Key_Down), target, this, &MainWindow::nextSlide);
+    new QShortcut(QKeySequence(Qt::Key_Space), target, this, &MainWindow::nextSlide);
+    
+    new QShortcut(QKeySequence(Qt::Key_Left), target, this, &MainWindow::prevSlide);
+    new QShortcut(QKeySequence(Qt::Key_Up), target, this, &MainWindow::prevSlide);
+    new QShortcut(QKeySequence(Qt::Key_Backspace), target, this, &MainWindow::prevSlide);
+    
+    new QShortcut(QKeySequence(Qt::Key_Home), target, this, &MainWindow::firstSlide);
+    new QShortcut(QKeySequence(Qt::Key_End), target, this, &MainWindow::lastSlide);
+    
+    // Tools
+    new QShortcut(QKeySequence(Qt::Key_L), target, this, &MainWindow::toggleLaser);
+    new QShortcut(QKeySequence(Qt::Key_Z), target, this, &MainWindow::toggleZoom);
+    new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_S), target, this, &MainWindow::toggleSplitView);
+    
+    // Screen Management
+    new QShortcut(QKeySequence(Qt::Key_S), target, this, &MainWindow::switchScreens);
+    
+    // System
+    new QShortcut(QKeySequence(Qt::Key_Q), target, this, &MainWindow::quitApp);
+    new QShortcut(QKeySequence(Qt::Key_Escape), target, this, &MainWindow::quitApp);
+}
+
+// Slots for Actions
+void MainWindow::nextSlide() 
+{
+    if (currentPage < pdf->pageCount() - 1) {
+        currentPage++;
+        updateViews();
+    }
+}
+
+void MainWindow::prevSlide() 
+{
+    if (currentPage > 0) {
+        currentPage--;
+        updateViews();
+    }
+}
+
+void MainWindow::firstSlide() 
+{
+    if (currentPage != 0) {
+        currentPage = 0;
+        updateViews();
+    }
+}
+
+void MainWindow::lastSlide() 
+{
+    if (currentPage != pdf->pageCount() - 1) {
+        currentPage = pdf->pageCount() - 1;
+        updateViews();
+    }
+}
+
+void MainWindow::toggleLaser() 
+{
+    laserCheckBox->setChecked(!laserCheckBox->isChecked());
+}
+
+void MainWindow::toggleZoom() 
+{
+    zoomCheckBox->setChecked(!zoomCheckBox->isChecked());
+}
+
+void MainWindow::quitApp() 
+{
+    close();
+}
+
 void MainWindow::setupUi()
 {
     QWidget *centralWidget = new QWidget(this);
@@ -64,9 +148,6 @@ void MainWindow::setupUi()
     // Laser Pointer Toggle
     laserCheckBox = new QCheckBox("Laser Pointer (L)");
     connect(laserCheckBox, &QCheckBox::toggled, this, [this](bool checked){
-        // Just update state, don't uncheck Zoom
-        laserCheckBox->setChecked(checked); // Visual sync if triggered by key? No, this is the checkbox signal.
-        // Wait, if triggered by key 'L', we called setChecked, which triggered this.
         showLaser = checked;
         presentationDisplay->enableLaserPointer(checked);
     });
@@ -84,13 +165,11 @@ void MainWindow::setupUi()
     topBar->addStretch();
     topBar->addWidget(new QLabel("Elapsed:"));
     topBar->addWidget(elapsedLabel);
-    // mainLayout->addLayout(topBar); // Add later or keep sequence
 
     // Zoom Controls Bar
     QHBoxLayout *zoomBar = new QHBoxLayout();
     zoomCheckBox = new QCheckBox("Zoom (Z)");
     connect(zoomCheckBox, &QCheckBox::toggled, this, [this](bool checked){
-        // State update only
         presentationDisplay->enableZoom(checked);
     });
     
@@ -104,8 +183,6 @@ void MainWindow::setupUi()
     magSlider->setValue(2); // Default
     magSlider->setFixedWidth(100);
     
-    // Store pointer for key updates? Or just leave local if logic is purely signal based?
-    // We needed member for key press sync.
     zoomSizeSlider = sizeSlider;
     zoomMagSlider = magSlider;
     
@@ -115,9 +192,6 @@ void MainWindow::setupUi()
     connect(sizeSlider, &QSlider::valueChanged, this, [this, sizeLabel](int val){
         sizeLabel->setText(QString("Size: %1px").arg(val));
         presentationDisplay->setZoomSettings(zoomMagSlider->value(), val);
-        // Force focus back to main window so keys work? Sliders steal focus?
-        // setFocus();
-        presentationDisplay->setFocus(); // Actually we want MainWindow to keep focus
     });
     
     connect(magSlider, &QSlider::valueChanged, this, [this, magLabel](int val){
@@ -136,9 +210,6 @@ void MainWindow::setupUi()
     zoomBar->addWidget(magLabel);
     zoomBar->addStretch();
 
-    // mainLayout->addLayout(topBar); // Moved to bottom
-    // mainLayout->addLayout(zoomBar); // Moved to bottom
-    
     // TOC View (Left)
     tocView = new QTreeView(this);
     tocView->setModel(bookmarkModel);
@@ -183,7 +254,8 @@ void MainWindow::setupUi()
         "Right/Space: Next Slide<br>"
         "Left/Back: Prev Slide<br>"
         "Home/End: First/Last Slide<br>"
-        "S: Toggle Split Mode (Notes)<br>"
+        "S: Switch Screens<br>"
+        "Ctrl+S: Toggle Split Mode<br>"
         "L: Laser | Z: Zoom<br>"
         "Q/Esc: Quit"
     );
@@ -226,6 +298,23 @@ void MainWindow::setupUi()
     QVBoxLayout *controlsLayout = new QVBoxLayout();
     controlsLayout->addLayout(topBar);
     controlsLayout->addLayout(zoomBar);
+    
+    // Screen Management Controls
+    QHBoxLayout *screenLayout = new QHBoxLayout();
+    
+    switchScreenButton = new QPushButton("Switch Screens (S)");
+    connect(switchScreenButton, &QPushButton::clicked, this, &MainWindow::switchScreens);
+    switchScreenButton->hide(); // Hidden by default
+    
+    screenSelector = new ScreenSelectorWidget(this);
+    connect(screenSelector, &ScreenSelectorWidget::audienceScreenChanged, this, &MainWindow::onAudienceScreenSelected);
+    screenSelector->hide(); // Hidden by default
+    
+    screenLayout->addWidget(switchScreenButton);
+    screenLayout->addWidget(screenSelector);
+    screenLayout->addStretch();
+    
+    controlsLayout->addLayout(screenLayout);
     mainLayout->addLayout(controlsLayout);
 
     setCentralWidget(centralWidget);
@@ -236,22 +325,132 @@ void MainWindow::setupUi()
 
 void MainWindow::detectScreens()
 {
+    updateScreenControls();
+    
+    // Connect to signal for future changes
+    connect(qApp, &QGuiApplication::screenAdded, this, &MainWindow::onScreenCountChanged);
+    connect(qApp, &QGuiApplication::screenRemoved, this, &MainWindow::onScreenCountChanged);
+
+    // Initial positioning
     QList<QScreen*> screens = QGuiApplication::screens();
     if (screens.size() > 1) {
-        // Move Presentation Window to the second screen
-        QRect screenGeo = screens[1]->geometry();
-        presentationDisplay->move(screenGeo.topLeft());
-        presentationDisplay->resize(screenGeo.size());
-        presentationDisplay->showFullScreen();
-        
-        // Optional: Ensure it's associated with the correct screen if handle exists
-        if (presentationDisplay->windowHandle()) {
-            presentationDisplay->windowHandle()->setScreen(screens[1]);
-        }
+        // Move Presentation Window to the second screen by default
+        onAudienceScreenSelected(1);
     } else {
-        // Single screen mode: Just show it as a normal window
+        // Single screen mode
         presentationDisplay->resize(800, 600);
         presentationDisplay->show();
+    }
+}
+
+void MainWindow::onScreenCountChanged()
+{
+    updateScreenControls();
+    screenSelector->refreshScreens();
+}
+
+void MainWindow::updateScreenControls()
+{
+    int count = QGuiApplication::screens().count();
+    
+    // Update Console Position in Selector
+    if (windowHandle()) {
+        QList<QScreen*> screens = QGuiApplication::screens();
+        int idx = screens.indexOf(windowHandle()->screen());
+        screenSelector->setConsoleScreen(idx);
+    }
+    
+    if (count <= 1) {
+        switchScreenButton->hide();
+        screenSelector->hide();
+    } else if (count == 2) {
+        switchScreenButton->show();
+        screenSelector->hide();
+    } else {
+        switchScreenButton->hide();
+        screenSelector->show();
+    }
+}
+
+void MainWindow::switchScreens()
+{
+    QList<QScreen*> screens = QGuiApplication::screens();
+    if (screens.count() != 2) return; // Only for 2-monitor mode or explicit button
+
+    // Find current screen of presentation window
+    QScreen *current = presentationDisplay->screen();
+    int idx = screens.indexOf(current);
+    
+    // Swap Audience
+    int nextIdx = (idx == 0) ? 1 : 0;
+    
+    // Collision check handled in onAudienceScreenSelected
+    onAudienceScreenSelected(nextIdx);
+}
+
+void MainWindow::onAudienceScreenSelected(int index)
+{
+    QList<QScreen*> screens = QGuiApplication::screens();
+    if (index >= 0 && index < screens.size()) {
+        
+        // Check Collision with Console Window
+        if (windowHandle() && screens.count() >= 2) {
+            QScreen *consoleScreen = windowHandle()->screen();
+            int consoleIdx = screens.indexOf(consoleScreen);
+            
+            if (index == consoleIdx) {
+                // Collision! Swap Console to the *other* available screen.
+                // If it was previously at 'oldAudienceIdx', go there.
+                // Or just find the first non-colliding screen.
+                
+                int targetConsoleIdx = -1;
+                // Try to swap with where Audience WAS?
+                QScreen *oldAudienceScreen = presentationDisplay->screen();
+                int oldAudienceIdx = screens.indexOf(oldAudienceScreen);
+                
+                if (oldAudienceIdx != index && oldAudienceIdx != -1) {
+                    targetConsoleIdx = oldAudienceIdx;
+                } else {
+                     // Fallback: Pick any screen that isn't 'index'
+                     for (int i=0; i<screens.size(); ++i) {
+                         if (i != index) {
+                             targetConsoleIdx = i;
+                             break;
+                         }
+                     }
+                }
+                
+                if (targetConsoleIdx != -1) {
+                    // Move Console
+                    QScreen *targetConsoleInfo = screens[targetConsoleIdx];
+                    windowHandle()->setScreen(targetConsoleInfo);
+                    
+                    // Move window physically
+                    QRect geo = targetConsoleInfo->availableGeometry();
+                    // Center it or maximize? Inherit state?
+                    // Let's just move it to center for safety, user can maximize
+                    setGeometry(geo.x() + 50, geo.y() + 50, 1200, 800);
+                    
+                    // Update selector
+                    screenSelector->setConsoleScreen(targetConsoleIdx);
+                }
+            }
+        }
+        
+        QScreen *target = screens[index];
+        QRect geo = target->geometry();
+        
+        // Ensure handle is created if not already
+        if (!presentationDisplay->isVisible()) presentationDisplay->show();
+        
+        if (presentationDisplay->windowHandle()) {
+            presentationDisplay->windowHandle()->setScreen(target);
+        }
+        presentationDisplay->setGeometry(geo);
+        presentationDisplay->showFullScreen();
+        
+        // Update selector state if visible
+        screenSelector->setAudienceScreen(index);
     }
 }
 
@@ -366,7 +565,6 @@ void MainWindow::updateViews()
     // 3. Update Console View
 
     currentSlideView->setPixmap(QPixmap::fromImage(audienceImg).scaled(currentSlideView->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    // presentationDisplay->updateSlide(audienceImg); // REMOVED
 
     // 3. Render Next Slide Preview
     if (currentPage + 1 < pdf->pageCount()) {
@@ -424,70 +622,8 @@ void MainWindow::toggleSplitView()
                                           : "Standard Mode Enabled");
 }
 
-void MainWindow::keyPressEvent(QKeyEvent *event)
-{
-    switch (event->key()) {
-        case Qt::Key_Right:
-        case Qt::Key_Down:
-        case Qt::Key_Space:
-            if (currentPage < pdf->pageCount() - 1) {
-                currentPage++;
-                updateViews();
-            }
-            break;
-        case Qt::Key_Left:
-        case Qt::Key_Up:
-        case Qt::Key_Backspace:
-            if (currentPage > 0) {
-                currentPage--;
-                updateViews();
-            }
-            break;
-        case Qt::Key_Home:
-            if (currentPage != 0) {
-                currentPage = 0;
-                updateViews();
-            }
-            break;
-        case Qt::Key_End:
-            if (currentPage != pdf->pageCount() - 1) {
-                currentPage = pdf->pageCount() - 1;
-                updateViews();
-            }
-            break;
-        case Qt::Key_L:
-            laserCheckBox->setChecked(!laserCheckBox->isChecked());
-            // Signal handler will update showLaser and call enableLaserPointer
-             event->accept();
-            break;
-        case Qt::Key_Z:
-            zoomCheckBox->setChecked(!zoomCheckBox->isChecked());
-             event->accept();
-            break;
-        case Qt::Key_S:
-            toggleSplitView();
-            break;
-        case Qt::Key_Q:
-        case Qt::Key_Escape:
-            close();
-            break;
-        default:
-            QMainWindow::keyPressEvent(event);
-    }
-}
-
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     presentationDisplay->close();
     QMainWindow::closeEvent(event);
-}
-
-bool MainWindow::eventFilter(QObject *watched, QEvent *event)
-{
-    if (watched == presentationDisplay && event->type() == QEvent::KeyPress) {
-        QKeyEvent *keyEvent = static_cast<QKeyEvent*>(event);
-        keyPressEvent(keyEvent); // Forward key event to main window logic
-        return true; // Mark handled
-    }
-    return QMainWindow::eventFilter(watched, event);
 }

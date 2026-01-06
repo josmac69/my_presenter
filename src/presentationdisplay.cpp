@@ -8,6 +8,7 @@ PresentationDisplay::PresentationDisplay(QWidget *parent)
 {
     setMouseTracking(true);
     setAttribute(Qt::WA_OpaquePaintEvent);
+    setFocusPolicy(Qt::StrongFocus);
     laserCursor = createLaserCursor();
 }
 
