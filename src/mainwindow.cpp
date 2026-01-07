@@ -247,20 +247,18 @@ void MainWindow::setupUi()
     // Global Stylesheet for Dock Borders
     setStyleSheet("QDockWidget { border: 1px solid #aaa; } QMainWindow::separator { background: #dcdcdc; width: 4px; height: 4px; }");
 
-    // 4. Dock: Timers (Bottom)
-    timerDock = new QDockWidget("Timers", this);
-    timerDock->setObjectName("TimerDock");
-    timerDock->setAllowedAreas(Qt::BottomDockWidgetArea | Qt::TopDockWidgetArea);
+    // 4a. Dock: Clock (Bottom)
+    clockDock = new QDockWidget("Clock", this);
+    clockDock->setObjectName("ClockDock");
+    clockDock->setAllowedAreas(Qt::AllDockWidgetAreas);
     
-    QWidget *timerContainer = new QWidget();
-    QHBoxLayout *timerLayout = new QHBoxLayout(timerContainer);
-    
+    QWidget *clockContainer = new QWidget();
+    QVBoxLayout *clockLayout = new QVBoxLayout(clockContainer);
+
     QFont defaultTimerFont = font();
     defaultTimerFont.setPointSize(14);
     defaultTimerFont.setBold(true);
-    
-    // Clock Section
-    QVBoxLayout *clockGroup = new QVBoxLayout();
+
     timeLabel = new QLabel("00:00:00");
     timeLabel->setFont(defaultTimerFont);
     timeLabel->setAlignment(Qt::AlignCenter);
@@ -277,12 +275,33 @@ void MainWindow::setupUi()
         timeLabel->setFont(f);
     });
 
-    clockGroup->addWidget(new QLabel("Current Time:"));
-    clockGroup->addWidget(timeLabel);
-    clockGroup->addWidget(clockFontSlider);
+    clockColorButton = new QPushButton("Color");
+    clockColorButton->setFixedWidth(100);
+    connect(clockColorButton, &QPushButton::clicked, this, [this](){
+        QColor color = QColorDialog::getColor(Qt::black, this, "Select Clock Color");
+        if (color.isValid()) {
+            timeLabel->setStyleSheet(QString("color: %1").arg(color.name()));
+            timeLabel->setProperty("customColor", color.name());
+        }
+    });
 
-    // Elapsed Timer Section
-    QVBoxLayout *elapsedGroup = new QVBoxLayout();
+    clockLayout->addWidget(new QLabel("Current Time:"));
+    clockLayout->addWidget(timeLabel);
+    clockLayout->addWidget(clockFontSlider);
+    clockLayout->addWidget(clockColorButton);
+    clockLayout->addStretch();
+    
+    clockDock->setWidget(clockContainer);
+    addDockWidget(Qt::BottomDockWidgetArea, clockDock);
+
+    // 4b. Dock: Timer (Bottom)
+    elapsedDock = new QDockWidget("Timer", this);
+    elapsedDock->setObjectName("ElapsedDock");
+    elapsedDock->setAllowedAreas(Qt::AllDockWidgetAreas);
+    
+    QWidget *elapsedContainer = new QWidget();
+    QVBoxLayout *elapsedLayout = new QVBoxLayout(elapsedContainer);
+
     elapsedLabel = new QLabel("00:00:00");
     elapsedLabel->setFont(defaultTimerFont);
     elapsedLabel->setAlignment(Qt::AlignCenter);
@@ -298,18 +317,25 @@ void MainWindow::setupUi()
         f.setPointSize(val);
         elapsedLabel->setFont(f);
     });
-
-    elapsedGroup->addWidget(new QLabel("Elapsed Time:"));
-    elapsedGroup->addWidget(elapsedLabel);
-    elapsedGroup->addWidget(timerFontSlider);
-
-    timerLayout->addLayout(clockGroup);
-    timerLayout->addSpacing(30);
-    timerLayout->addLayout(elapsedGroup);
-    timerLayout->addStretch();
     
-    timerDock->setWidget(timerContainer);
-    addDockWidget(Qt::BottomDockWidgetArea, timerDock);
+    timerColorButton = new QPushButton("Color");
+    timerColorButton->setFixedWidth(100);
+    connect(timerColorButton, &QPushButton::clicked, this, [this](){
+        QColor color = QColorDialog::getColor(Qt::black, this, "Select Timer Color");
+        if (color.isValid()) {
+            elapsedLabel->setStyleSheet(QString("color: %1").arg(color.name()));
+            elapsedLabel->setProperty("customColor", color.name());
+        }
+    });
+
+    elapsedLayout->addWidget(new QLabel("Elapsed Time:"));
+    elapsedLayout->addWidget(elapsedLabel);
+    elapsedLayout->addWidget(timerFontSlider);
+    elapsedLayout->addWidget(timerColorButton);
+    elapsedLayout->addStretch();
+    
+    elapsedDock->setWidget(elapsedContainer);
+    addDockWidget(Qt::BottomDockWidgetArea, elapsedDock);
 
     // 5. Dock: Controls (Buttons & Checkboxes) (Bottom)
     controlsDock = new QDockWidget("Controls", this);
@@ -377,8 +403,8 @@ void MainWindow::setupUi()
         presentationDisplay->setZoomSettings(val, zoomSizeSlider->value());
     });
 
-    QHBoxLayout *row1 = new QHBoxLayout(); row1->addWidget(new QLabel("Dia:")); row1->addWidget(sizeSlider); row1->addWidget(sizeLabel);
-    QHBoxLayout *row2 = new QHBoxLayout(); row2->addWidget(new QLabel("Mag:")); row2->addWidget(magSlider); row2->addWidget(magLabel);
+    QHBoxLayout *row1 = new QHBoxLayout(); row1->addWidget(new QLabel("Diameter:")); row1->addWidget(sizeSlider); row1->addWidget(sizeLabel);
+    QHBoxLayout *row2 = new QHBoxLayout(); row2->addWidget(new QLabel("Magnification:")); row2->addWidget(magSlider); row2->addWidget(magLabel);
     col3->addLayout(row1);
     col3->addLayout(row2);
 
@@ -833,6 +859,13 @@ void MainWindow::loadSettings()
         timerFontSlider->setValue(settings.value("font/timerSize").toInt());
     }
 
+    if (settings.contains("font/clockColor")) {
+        timeLabel->setStyleSheet(QString("color: %1").arg(settings.value("font/clockColor").toString()));
+    }
+    if (settings.contains("font/timerColor")) {
+        elapsedLabel->setStyleSheet(QString("color: %1").arg(settings.value("font/timerColor").toString()));
+    }
+
     if (settings.contains("window/consoleFullscreen")) {
         bool full = settings.value("window/consoleFullscreen").toBool();
         consoleFullscreenCheck->setChecked(full);
@@ -864,6 +897,30 @@ void MainWindow::saveSettings()
     
     settings.setValue("font/clockSize", clockFontSlider->value());
     settings.setValue("font/timerSize", timerFontSlider->value());
+    
+    if (timeLabel->palette().color(QPalette::WindowText).isValid())
+         settings.setValue("font/clockColor", timeLabel->palette().color(QPalette::WindowText).name());
+         
+    // Note: Since we use stylesheets, we might need a stored member or parse the stylesheet to get the color back effectively if palette update isn't immediate.
+    // However, setStyleSheet usually updates the widget's palette. Let's make sure we save the style sheet color or just the last picked one.
+    // Better strategy: We don't have a member for color, so we rely on what was set.
+    // Actually, reading back from stylesheet string is messy.
+    // Let's rely on the property we just set.
+    
+    // Simpler approach: Store the color string in a dynamic property 'customColor' when setting it?
+    // Or just save what we can. 
+    // Updated plan: The lambda sets stylesheet. We can parse it or store it. 
+    // Let's assume for now we just save if we have a way.
+    // Actually, simpler: define members `QString clockColorStr` and `QString timerColorStr`.
+    // But modification of Header again? 
+    // Let's use QSettings to store what we put in the stylesheet if we can't easily retrieve it.
+    // Wait, I can just use `timeLabel->palette().color(QPalette::WindowText).name()`? 
+    // setStyleSheet does NOT always update the palette accessors immediately or reliably for saving.
+    // Reliable way: Extract from stylesheet or use a property.
+    
+    // Let's use dynamic properties for storage without header change.
+    settings.setValue("font/clockColor", timeLabel->property("customColor"));
+    settings.setValue("font/timerColor", elapsedLabel->property("customColor"));
 
     settings.setValue("window/consoleFullscreen", consoleFullscreenCheck->isChecked());
     settings.setValue("window/audienceFullscreen", audienceFullscreenCheck->isChecked());

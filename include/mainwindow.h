@@ -16,6 +16,7 @@
 #include "presentationdisplay.h"
 #include <QCheckBox>
 #include <QSlider>
+#include <QColorDialog>
 
 #include <QTime>
 
@@ -93,7 +94,8 @@ private:
     // Docks
     QDockWidget *tocDock;
     QDockWidget *infoDock; // Next Slide + Notes
-    QDockWidget *timerDock;
+    QDockWidget *clockDock;
+    QDockWidget *elapsedDock;
     QDockWidget *controlsDock;
     QDockWidget *screenDock;
     
@@ -113,6 +115,8 @@ private:
     // Font Controls
     QSlider *clockFontSlider;
     QSlider *timerFontSlider;
+    QPushButton *clockColorButton;
+    QPushButton *timerColorButton;
     
     // Window Controls
     QCheckBox *consoleFullscreenCheck;
