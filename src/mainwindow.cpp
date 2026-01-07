@@ -230,13 +230,44 @@ void MainWindow::setupUi()
     tocDock->setObjectName("ChaptersDock");
     tocDock->setAllowedAreas(Qt::AllDockWidgetAreas);
     
+    QWidget *tocContainer = new QWidget();
+    // Ensure the container matches the list background (usually white)
+    tocContainer->setStyleSheet("background-color: palette(base); color: palette(text);");
+    
+    QVBoxLayout *tocLayout = new QVBoxLayout(tocContainer);
+    tocLayout->setContentsMargins(0, 0, 0, 0);
+    tocLayout->setSpacing(0);
+
+    // Start Button
+    QPushButton *startNavBtn = new QPushButton("--- start ---");
+    startNavBtn->setFlat(true);
+    // Background inherits from container (palette(base)), text color from container
+    startNavBtn->setStyleSheet("text-align: left; padding: 5px; border: none;");
+    startNavBtn->setCursor(Qt::PointingHandCursor);
+    connect(startNavBtn, &QPushButton::clicked, this, &MainWindow::firstSlide);
+
+    // Tree View
     tocView = new QTreeView(tocDock);
     tocView->setModel(bookmarkModel);
     tocView->setHeaderHidden(true);
+    // Remove frame to blend with buttons
+    tocView->setFrameShape(QFrame::NoFrame); 
     connect(tocView, &QTreeView::activated, this, &MainWindow::onBookmarkActivated);
     connect(tocView, &QTreeView::clicked, this, &MainWindow::onBookmarkActivated);
     
-    tocDock->setWidget(tocView);
+    // End Button
+    QPushButton *endNavBtn = new QPushButton("--- end ---");
+    endNavBtn->setFlat(true);
+    // Top border to separate from list if needed, or keeping it seamless
+    endNavBtn->setStyleSheet("text-align: left; padding: 5px; border: none;"); 
+    endNavBtn->setCursor(Qt::PointingHandCursor);
+    connect(endNavBtn, &QPushButton::clicked, this, &MainWindow::lastSlide);
+
+    tocLayout->addWidget(startNavBtn);
+    tocLayout->addWidget(tocView);
+    tocLayout->addWidget(endNavBtn);
+    
+    tocDock->setWidget(tocContainer);
     addDockWidget(Qt::LeftDockWidgetArea, tocDock);
 
     // 3a. Dock: Next Slide (Right Top)
@@ -506,11 +537,15 @@ void MainWindow::setupUi()
     controlsLayout->addSpacing(20);
     controlsLayout->addLayout(rightLayout);
     controlsLayout->addStretch();
-    // Duplicates removed (lines 512-515)
+    // Enforce that the layout's minimum size IS the widget's minimum size
+    controlsLayout->setSizeConstraint(QLayout::SetMinimumSize);
     
+    // Allow horizontal expansion to fill space, vertical preference matched to content
+    controlsContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+
     // Direct assignment enforces minimum size (mandatory visibility)
     controlsDock->setWidget(controlsContainer);
-    controlsDock->setMinimumHeight(120); // Maintain a reasonable minimum for safety
+    // Remove hardcoded minimum height (120) - rely on SetMinimumSize constraint
     addDockWidget(Qt::BottomDockWidgetArea, controlsDock);
 
     // 6. Dock: Monitor Manager (Separate)
