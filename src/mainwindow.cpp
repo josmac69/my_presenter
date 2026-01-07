@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "flowlayout.h"
 #include <QFileDialog>
 #include <QScreen>
 #include <QGuiApplication>
@@ -293,7 +294,7 @@ void MainWindow::setupUi()
     nextSlideDock->setWidget(nextSlideContainer);
     addDockWidget(Qt::RightDockWidgetArea, nextSlideDock);
 
-    // 3b. Dock: Notes + Help (Right Bottom)
+    // 3b. Dock: Notes + Help (Right Bottom -> Now Center Bottom)
     notesDock = new QDockWidget("Notes", this);
     notesDock->setObjectName("NotesDock");
     notesDock->setAllowedAreas(Qt::AllDockWidgetAreas);
@@ -303,9 +304,6 @@ void MainWindow::setupUi()
     
     notesView = new QTextEdit();
     notesView->setPlaceholderText("Notes for this slide...");
-    // Constrain expansion: Ignored horizontal prevents aggressive expansion/creep loops
-    // UPDATE: User reported 'creep'. Preferred vs Ignored.
-    // Ignored prevents feedback loop.
     notesView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     
     notesImageView = new QLabel("Notes View");
@@ -317,83 +315,96 @@ void MainWindow::setupUi()
     notesLayout->addWidget(notesImageView);
     
     notesDock->setWidget(notesContainer);
-    addDockWidget(Qt::RightDockWidgetArea, notesDock);
+    // Add to Top Area (Center) then split vertically from Current Slide
+    addDockWidget(Qt::TopDockWidgetArea, notesDock);
+    splitDockWidget(currentSlideDock, notesDock, Qt::Vertical);
     
-    // Split vertically by default if on right
-    // splitDockWidget(nextSlideDock, notesDock, Qt::Vertical); // Optional logic, or let defaults handle it
-
     // Global Stylesheet for Dock Borders
     setStyleSheet("QDockWidget { border: 1px solid #aaa; } QMainWindow::separator { background: #dcdcdc; width: 4px; height: 4px; }");
 
-    // 4a. Dock: Clock (Bottom)
-    clockDock = new QDockWidget("Clock", this);
-    clockDock->setObjectName("ClockDock");
-    clockDock->setAllowedAreas(Qt::AllDockWidgetAreas);
-    
-    QWidget *clockContainer = new QWidget();
-    QVBoxLayout *clockLayout = new QVBoxLayout(clockContainer);
+    // 4. Dock: Control Center (Bottom -> Now Right Bottom)
+    controlCenterDock = new QDockWidget("Control Center", this);
+    controlCenterDock->setObjectName("ControlCenterDock");
+    controlCenterDock->setAllowedAreas(Qt::AllDockWidgetAreas);
 
-    QFont defaultTimerFont("Nimbus Sans", 14, QFont::Bold);
-    // Fallback if Nimbus isn't found is usually automatic by Qt to Sans Serif
-    defaultTimerFont.setBold(true);
+    QWidget *centerContainer = new QWidget();
+    FlowLayout *centerLayout = new FlowLayout(centerContainer);
+    centerLayout->setContentsMargins(5, 5, 5, 5);
 
-    timeLabel = new QLabel("00:00:00");
-    timeLabel->setFont(defaultTimerFont);
-    timeLabel->setAlignment(Qt::AlignCenter);
+    // --- Subframe 1: Controls ---
+    QFrame *controlsFrame = new QFrame();
+    controlsFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+    controlsFrame->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred); 
     
-    clockFontSlider = new QSlider(Qt::Horizontal);
-    clockFontSlider->setRange(10, 72);
-    clockFontSlider->setValue(14);
-    clockFontSlider->setFixedWidth(100);
-    clockFontSlider->setToolTip("Adjust Clock Font Size");
+    QHBoxLayout *controlsLayout = new QHBoxLayout(controlsFrame);
+    controlsLayout->setContentsMargins(5, 5, 5, 5);
     
-    connect(clockFontSlider, &QSlider::valueChanged, this, [this](int val){
-        QFont f = timeLabel->font();
-        f.setPointSize(val);
-        timeLabel->setFont(f);
-    });
+    // Left: Window Modes
+    QVBoxLayout *leftLayout = new QVBoxLayout(); 
+    consoleFullscreenCheck = new QCheckBox("Console Fullscreen");
+    connect(consoleFullscreenCheck, &QCheckBox::toggled, this, &MainWindow::toggleConsoleFullscreen);
+    audienceFullscreenCheck = new QCheckBox("Audience Fullscreen");
+    connect(audienceFullscreenCheck, &QCheckBox::toggled, this, &MainWindow::toggleAudienceFullscreen);
+    aspectRatioCheck = new QCheckBox("Lock Aspect Ratio");
+    connect(aspectRatioCheck, &QCheckBox::toggled, this, &MainWindow::toggleAspectRatioLock);
+    leftLayout->addWidget(consoleFullscreenCheck);
+    leftLayout->addWidget(audienceFullscreenCheck);
+    leftLayout->addWidget(aspectRatioCheck);
+    leftLayout->addStretch();
+    
+    // Right: Features
+    QVBoxLayout *rightLayout = new QVBoxLayout();
+    laserCheckBox = new QCheckBox("Laser (L)");
+    connect(laserCheckBox, &QCheckBox::toggled, this, [this](bool checked){ showLaser = checked; presentationDisplay->enableLaserPointer(checked); });
+    zoomCheckBox = new QCheckBox("Zoom (Z)");
+    connect(zoomCheckBox, &QCheckBox::toggled, this, [this](bool checked){ presentationDisplay->enableZoom(checked); });
+    
+    // Zoom Sliders
+    QLabel *sizeLabel = new QLabel("Size: 250px");
+    QSlider *sizeSlider = new QSlider(Qt::Horizontal);
+    sizeSlider->setRange(250, 1500); sizeSlider->setValue(250); sizeSlider->setFixedWidth(120);
+    QLabel *magLabel = new QLabel("Mag: 2x");
+    QSlider *magSlider = new QSlider(Qt::Horizontal);
+    magSlider->setRange(2, 5); magSlider->setValue(2); magSlider->setFixedWidth(100);
+    zoomSizeSlider = sizeSlider; zoomMagSlider = magSlider;
+    
+    connect(sizeSlider, &QSlider::valueChanged, this, [this, sizeLabel](int val){ sizeLabel->setText(QString("Size: %1px").arg(val)); presentationDisplay->setZoomSettings(zoomMagSlider->value(), val); });
+    connect(magSlider, &QSlider::valueChanged, this, [this, magLabel](int val){ magLabel->setText(QString("Mag: %1x").arg(val)); presentationDisplay->setZoomSettings(val, zoomSizeSlider->value()); });
 
-    clockColorButton = new QPushButton("Color");
-    clockColorButton->setFixedWidth(100);
-    connect(clockColorButton, &QPushButton::clicked, this, [this](){
-        QColor color = QColorDialog::getColor(Qt::black, this, "Select Clock Color");
-        if (color.isValid()) {
-            timeLabel->setStyleSheet(QString("color: %1").arg(color.name()));
-            timeLabel->setProperty("customColor", color.name());
-        }
-    });
-    
-    // Clock Font Button
-    clockFontButton = new QPushButton("Font");
-    clockFontButton->setFixedWidth(100);
-    connect(clockFontButton, &QPushButton::clicked, this, [this](){
-        bool ok;
-        QFont font = QFontDialog::getFont(&ok, timeLabel->font(), this, "Select Clock Font");
-        if (ok) {
-            clockFontSlider->setValue(font.pointSize());
-            timeLabel->setFont(font);
-            update(); // Refresh window
-        }
-    });
+    // Buttons
+    resetLayoutButton = new QPushButton("Reset Layout");
+    resetLayoutButton->setFixedWidth(120);
+    connect(resetLayoutButton, &QPushButton::clicked, this, &MainWindow::resetLayout);
+    closeButton = new QPushButton("Close Presenter");
+    closeButton->setFixedWidth(120);
+    closeButton->setStyleSheet("background-color: #ffcccc; padding: 5px;"); 
+    connect(closeButton, &QPushButton::clicked, this, &MainWindow::close);
 
-    clockLayout->addWidget(new QLabel("Current Time:"));
-    clockLayout->addWidget(timeLabel);
-    clockLayout->addWidget(clockFontSlider);
-    clockLayout->addWidget(clockColorButton);
-    clockLayout->addWidget(clockFontButton);
-    clockLayout->addStretch();
-    
-    clockDock->setWidget(clockContainer);
-    addDockWidget(Qt::BottomDockWidgetArea, clockDock);
+    rightLayout->addWidget(laserCheckBox);
+    rightLayout->addWidget(zoomCheckBox);
+    rightLayout->addSpacing(5);
+    rightLayout->addWidget(new QLabel("Diameter:"));
+    rightLayout->addWidget(sizeSlider);
+    rightLayout->addWidget(sizeLabel);
+    rightLayout->addWidget(new QLabel("Magnification:"));
+    rightLayout->addWidget(magSlider);
+    rightLayout->addWidget(magLabel);
+    rightLayout->addSpacing(5);
+    rightLayout->addWidget(resetLayoutButton);
+    rightLayout->addWidget(closeButton);
+    rightLayout->addStretch();
 
-    // 4b. Dock: Timer (Bottom)
-    elapsedDock = new QDockWidget("Timer", this);
-    elapsedDock->setObjectName("ElapsedDock");
-    elapsedDock->setAllowedAreas(Qt::AllDockWidgetAreas);
-    
-    QWidget *elapsedContainer = new QWidget();
-    QVBoxLayout *elapsedLayout = new QVBoxLayout(elapsedContainer);
+    controlsLayout->addLayout(leftLayout);
+    controlsLayout->addSpacing(10);
+    controlsLayout->addLayout(rightLayout);
+    controlsLayout->addStretch(); // Internal stretch for controls
 
+    // --- Subframe 2: Timer ---
+    QFrame *timerFrame = new QFrame();
+    timerFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+    QVBoxLayout *elapsedLayout = new QVBoxLayout(timerFrame); // Vertical layout for timer
+    
+    QFont defaultTimerFont("Nimbus Sans", 14, QFont::Bold); defaultTimerFont.setBold(true);
     elapsedLabel = new QLabel("00:00:00");
     elapsedLabel->setFont(defaultTimerFont);
     elapsedLabel->setAlignment(Qt::AlignCenter);
@@ -402,160 +413,84 @@ void MainWindow::setupUi()
     timerFontSlider->setRange(10, 72);
     timerFontSlider->setValue(14);
     timerFontSlider->setFixedWidth(100);
-    timerFontSlider->setToolTip("Adjust Timer Font Size");
-
-    connect(timerFontSlider, &QSlider::valueChanged, this, [this](int val){
-        QFont f = elapsedLabel->font();
-        f.setPointSize(val);
-        elapsedLabel->setFont(f);
-    });
+    connect(timerFontSlider, &QSlider::valueChanged, this, [this](int val){ QFont f = elapsedLabel->font(); f.setPointSize(val); elapsedLabel->setFont(f); });
     
     timerColorButton = new QPushButton("Color");
     timerColorButton->setFixedWidth(100);
     connect(timerColorButton, &QPushButton::clicked, this, [this](){
         QColor color = QColorDialog::getColor(Qt::black, this, "Select Timer Color");
-        if (color.isValid()) {
-            elapsedLabel->setStyleSheet(QString("color: %1").arg(color.name()));
-            elapsedLabel->setProperty("customColor", color.name());
-        }
+        if (color.isValid()) { elapsedLabel->setStyleSheet(QString("color: %1").arg(color.name())); elapsedLabel->setProperty("customColor", color.name()); }
     });
     
-    // Timer Font Button
     timerFontButton = new QPushButton("Font");
     timerFontButton->setFixedWidth(100);
     connect(timerFontButton, &QPushButton::clicked, this, [this](){
-        bool ok;
-        QFont font = QFontDialog::getFont(&ok, elapsedLabel->font(), this, "Select Timer Font");
-        if (ok) {
-            timerFontSlider->setValue(font.pointSize());
-            elapsedLabel->setFont(font);
-            update(); // Refresh window
-        }
+        bool ok; QFont font = QFontDialog::getFont(&ok, elapsedLabel->font(), this, "Select Timer Font");
+        if (ok) { timerFontSlider->setValue(font.pointSize()); elapsedLabel->setFont(font); update(); }
     });
-
-    // Timer Start/Pause Button (Top Right)
+    
     timerButton = new QPushButton("Start timer");
     connect(timerButton, &QPushButton::clicked, this, &MainWindow::toggleTimer);
-
+    
     QHBoxLayout *timerHeader = new QHBoxLayout();
-    timerHeader->addWidget(new QLabel("Elapsed Time:"));
+    timerHeader->addWidget(new QLabel("Timer:"));
     timerHeader->addStretch();
     timerHeader->addWidget(timerButton);
-
+    
     elapsedLayout->addLayout(timerHeader);
     elapsedLayout->addWidget(elapsedLabel);
     elapsedLayout->addWidget(timerFontSlider);
     elapsedLayout->addWidget(timerColorButton);
     elapsedLayout->addWidget(timerFontButton);
     elapsedLayout->addStretch();
-    
-    elapsedDock->setWidget(elapsedContainer);
-    addDockWidget(Qt::BottomDockWidgetArea, elapsedDock);
 
-    // 5. Dock: Controls (Bottom)
-    controlsDock = new QDockWidget("Controls", this);
-    controlsDock->setObjectName("ControlsDock");
-    controlsDock->setAllowedAreas(Qt::AllDockWidgetAreas);
+    // --- Subframe 3: Clock ---
+    QFrame *clockFrame = new QFrame();
+    clockFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+    QVBoxLayout *clockLayout = new QVBoxLayout(clockFrame);
     
-    QWidget *controlsContainer = new QWidget();
-    QHBoxLayout *controlsLayout = new QHBoxLayout(controlsContainer); 
+    timeLabel = new QLabel("00:00:00");
+    timeLabel->setFont(defaultTimerFont);
+    timeLabel->setAlignment(Qt::AlignCenter);
     
-    // Left: Window Modes
-    QVBoxLayout *leftLayout = new QVBoxLayout(); 
-    
-    // Window Modes
-    consoleFullscreenCheck = new QCheckBox("Console Fullscreen");
-    connect(consoleFullscreenCheck, &QCheckBox::toggled, this, &MainWindow::toggleConsoleFullscreen);
-    audienceFullscreenCheck = new QCheckBox("Audience Fullscreen");
-    connect(audienceFullscreenCheck, &QCheckBox::toggled, this, &MainWindow::toggleAudienceFullscreen);
-    aspectRatioCheck = new QCheckBox("Lock Aspect Ratio");
-    connect(aspectRatioCheck, &QCheckBox::toggled, this, &MainWindow::toggleAspectRatioLock);
+    clockFontSlider = new QSlider(Qt::Horizontal);
+    clockFontSlider->setRange(10, 72);
+    clockFontSlider->setValue(14);
+    clockFontSlider->setFixedWidth(100);
+    connect(clockFontSlider, &QSlider::valueChanged, this, [this](int val){ QFont f = timeLabel->font(); f.setPointSize(val); timeLabel->setFont(f); });
 
-    leftLayout->addWidget(consoleFullscreenCheck);
-    leftLayout->addWidget(audienceFullscreenCheck);
-    leftLayout->addWidget(aspectRatioCheck);
-    leftLayout->addStretch();
-    
-    // Right: Features & Sliders (Vertical Stack)
-    QVBoxLayout *rightLayout = new QVBoxLayout();
-    
-    // Laser
-    laserCheckBox = new QCheckBox("Laser (L)");
-    connect(laserCheckBox, &QCheckBox::toggled, this, [this](bool checked){
-        showLaser = checked;
-        presentationDisplay->enableLaserPointer(checked);
-    });
-    
-    // Zoom
-    zoomCheckBox = new QCheckBox("Zoom (Z)");
-    connect(zoomCheckBox, &QCheckBox::toggled, this, [this](bool checked){
-        presentationDisplay->enableZoom(checked);
-    });
-    
-    // Zoom Sliders (Stacked vertically)
-    QLabel *sizeLabel = new QLabel("Size: 250px");
-    QSlider *sizeSlider = new QSlider(Qt::Horizontal);
-    sizeSlider->setRange(250, 1500); sizeSlider->setValue(250); sizeSlider->setFixedWidth(120);
-    
-    QLabel *magLabel = new QLabel("Mag: 2x");
-    QSlider *magSlider = new QSlider(Qt::Horizontal);
-    magSlider->setRange(2, 5); magSlider->setValue(2); magSlider->setFixedWidth(100);
-    
-    zoomSizeSlider = sizeSlider;
-    zoomMagSlider = magSlider;
-    
-    connect(sizeSlider, &QSlider::valueChanged, this, [this, sizeLabel](int val){
-        sizeLabel->setText(QString("Size: %1px").arg(val));
-        presentationDisplay->setZoomSettings(zoomMagSlider->value(), val);
-    });
-    connect(magSlider, &QSlider::valueChanged, this, [this, magLabel](int val){
-        magLabel->setText(QString("Mag: %1x").arg(val));
-        presentationDisplay->setZoomSettings(val, zoomSizeSlider->value());
+    clockColorButton = new QPushButton("Color");
+    clockColorButton->setFixedWidth(100);
+    connect(clockColorButton, &QPushButton::clicked, this, [this](){
+        QColor color = QColorDialog::getColor(Qt::black, this, "Select Clock Color");
+        if (color.isValid()) { timeLabel->setStyleSheet(QString("color: %1").arg(color.name())); timeLabel->setProperty("customColor", color.name()); }
     });
 
-    // Buttons (Short)
-    resetLayoutButton = new QPushButton("Reset Layout");
-    resetLayoutButton->setFixedWidth(120);
-    connect(resetLayoutButton, &QPushButton::clicked, this, &MainWindow::resetLayout);
-    
-    closeButton = new QPushButton("Close Presenter");
-    closeButton->setFixedWidth(120);
-    closeButton->setStyleSheet("background-color: #ffcccc; padding: 5px;"); 
-    connect(closeButton, &QPushButton::clicked, this, &MainWindow::close);
-    
-    // Add all to right layout directly (Vertical Stack)
-    rightLayout->addWidget(laserCheckBox);
-    rightLayout->addWidget(zoomCheckBox);
-    rightLayout->addSpacing(10);
-    rightLayout->addWidget(new QLabel("Diameter:"));
-    rightLayout->addWidget(sizeSlider);
-    rightLayout->addWidget(sizeLabel); // Value label below or next to? "one below each other" -> implied stack
-    rightLayout->addSpacing(5);
-    rightLayout->addWidget(new QLabel("Magnification:"));
-    rightLayout->addWidget(magSlider);
-    rightLayout->addWidget(magLabel);
-    rightLayout->addSpacing(10);
-    rightLayout->addWidget(resetLayoutButton);
-    rightLayout->addWidget(closeButton);
-    rightLayout->addStretch();
+    clockFontButton = new QPushButton("Font");
+    clockFontButton->setFixedWidth(100);
+    connect(clockFontButton, &QPushButton::clicked, this, [this](){
+        bool ok; QFont font = QFontDialog::getFont(&ok, timeLabel->font(), this, "Select Clock Font");
+        if (ok) { clockFontSlider->setValue(font.pointSize()); timeLabel->setFont(font); update(); }
+    });
 
-    controlsLayout->addStretch(); // Push from left
-    controlsLayout->addLayout(leftLayout);
-    controlsLayout->addSpacing(20);
-    controlsLayout->addLayout(rightLayout);
-    controlsLayout->addStretch(); // Push from right (already existed, keeping it)
-    // Removed duplicate lines that were here (addLayout right, addStretch)
-    
-    // REMOVED: controlsLayout->setSizeConstraint(QLayout::SetMinimumSize); 
-    // This was preventing expansion. Natural widget sizing handles minimums.
-    
-    // Allow horizontal expansion to fill space, vertical preference matched to content
-    controlsContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    clockLayout->addWidget(new QLabel("Current Time:"));
+    clockLayout->addWidget(timeLabel);
+    clockLayout->addWidget(clockFontSlider);
+    clockLayout->addWidget(clockColorButton);
+    clockLayout->addWidget(clockFontButton);
+    clockLayout->addStretch();
 
-    // Direct assignment enforces minimum size (mandatory visibility)
-    controlsDock->setWidget(controlsContainer);
-    // Remove hardcoded minimum height (120) - rely on SetMinimumSize constraint
-    addDockWidget(Qt::BottomDockWidgetArea, controlsDock);
+    // Add Frames to Main Layout
+    // Add Frames to Main Layout
+    // Flow Layout: Controls | Timer | Clock (Wraps automatically)
+    centerLayout->addWidget(controlsFrame);
+    centerLayout->addWidget(timerFrame);
+    centerLayout->addWidget(clockFrame);
+
+    controlCenterDock->setWidget(centerContainer);
+    // Add to Right Area then split vertically from Next Slide
+    addDockWidget(Qt::RightDockWidgetArea, controlCenterDock);
+    splitDockWidget(nextSlideDock, controlCenterDock, Qt::Vertical);
 
     // 6. Dock: Monitor Manager (Separate)
     screenDock = new QDockWidget("Monitor Manager", this);
@@ -600,6 +535,15 @@ void MainWindow::setupUi()
 
     setWindowTitle("Presenter Console");
     resize(1200, 800);
+    
+    // Set Default Layout Proportions: 25% Left, 50% Center, 25% Right
+    // 1200px * 0.25 = 300px
+    resizeDocks({tocDock, screenDock}, {300, 300}, Qt::Horizontal);
+    // Right column is now Next Slide + Control Center
+    resizeDocks({nextSlideDock, controlCenterDock}, {300, 300}, Qt::Horizontal);
+    
+    // Capture this state as the default
+    defaultState = saveState();
 }
 
 void MainWindow::detectScreens()

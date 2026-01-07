@@ -13,12 +13,14 @@ DESTDIR  = bin
 SOURCES += src/main.cpp \
            src/mainwindow.cpp \
            src/presentationdisplay.cpp \
-           src/screenselectorwidget.cpp
+           src/screenselectorwidget.cpp \
+           src/flowlayout.cpp
 
 # Header files
 HEADERS += include/mainwindow.h \
            include/presentationdisplay.h \
-           include/screenselectorwidget.h
+           include/screenselectorwidget.h \
+           include/flowlayout.h
 
 # Include paths
 INCLUDEPATH += include

@@ -99,9 +99,8 @@ private:
     // Docks
     QDockWidget *tocDock;
     QDockWidget *infoDock; // Next Slide + Notes
-    QDockWidget *clockDock;
-    QDockWidget *elapsedDock;
-    QDockWidget *controlsDock;
+    QDockWidget *controlCenterDock; // NEW: Consolidates Clock, Timer, Controls
+    // Removed individual docks: clockDock, elapsedDock, controlsDock
     QDockWidget *screenDock;
     QDockWidget *currentSlideDock;
     QDockWidget *nextSlideDock; // NEW

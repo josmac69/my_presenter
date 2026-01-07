@@ -55,13 +55,15 @@ OBJECTS_DIR   = obj/
 SOURCES       = src/main.cpp \
 		src/mainwindow.cpp \
 		src/presentationdisplay.cpp \
-		src/screenselectorwidget.cpp obj/moc_mainwindow.cpp \
+		src/screenselectorwidget.cpp \
+		src/flowlayout.cpp obj/moc_mainwindow.cpp \
 		obj/moc_presentationdisplay.cpp \
 		obj/moc_screenselectorwidget.cpp
 OBJECTS       = obj/main.o \
 		obj/mainwindow.o \
 		obj/presentationdisplay.o \
 		obj/screenselectorwidget.o \
+		obj/flowlayout.o \
 		obj/moc_mainwindow.o \
 		obj/moc_presentationdisplay.o \
 		obj/moc_screenselectorwidget.o
@@ -135,10 +137,12 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt6/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt6/mkspecs/features/lex.prf \
 		my_presenter.pro include/mainwindow.h \
 		include/presentationdisplay.h \
-		include/screenselectorwidget.h src/main.cpp \
+		include/screenselectorwidget.h \
+		include/flowlayout.h src/main.cpp \
 		src/mainwindow.cpp \
 		src/presentationdisplay.cpp \
-		src/screenselectorwidget.cpp
+		src/screenselectorwidget.cpp \
+		src/flowlayout.cpp
 QMAKE_TARGET  = app
 DESTDIR       = bin/
 TARGET        = bin/app
@@ -315,8 +319,8 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt6/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents include/mainwindow.h include/presentationdisplay.h include/screenselectorwidget.h $(DISTDIR)/
-	$(COPY_FILE) --parents src/main.cpp src/mainwindow.cpp src/presentationdisplay.cpp src/screenselectorwidget.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents include/mainwindow.h include/presentationdisplay.h include/screenselectorwidget.h include/flowlayout.h $(DISTDIR)/
+	$(COPY_FILE) --parents src/main.cpp src/mainwindow.cpp src/presentationdisplay.cpp src/screenselectorwidget.cpp src/flowlayout.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -391,7 +395,8 @@ obj/main.o: src/main.cpp include/mainwindow.h \
 
 obj/mainwindow.o: src/mainwindow.cpp include/mainwindow.h \
 		include/screenselectorwidget.h \
-		include/presentationdisplay.h
+		include/presentationdisplay.h \
+		include/flowlayout.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o obj/mainwindow.o src/mainwindow.cpp
 
 obj/presentationdisplay.o: src/presentationdisplay.cpp include/presentationdisplay.h
@@ -399,6 +404,9 @@ obj/presentationdisplay.o: src/presentationdisplay.cpp include/presentationdispl
 
 obj/screenselectorwidget.o: src/screenselectorwidget.cpp include/screenselectorwidget.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o obj/screenselectorwidget.o src/screenselectorwidget.cpp
+
+obj/flowlayout.o: src/flowlayout.cpp include/flowlayout.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o obj/flowlayout.o src/flowlayout.cpp
 
 obj/moc_mainwindow.o: obj/moc_mainwindow.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o obj/moc_mainwindow.o obj/moc_mainwindow.cpp
