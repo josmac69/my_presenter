@@ -33,8 +33,7 @@ MainWindow::MainWindow(QWidget *parent)
     setupUi();
 
     // Setup shortcuts for both windows
-    setupShortcuts(this);
-    setupShortcuts(presentationDisplay);
+    setupShortcuts();
 
     detectScreens();
 
@@ -68,37 +67,38 @@ MainWindow::~MainWindow()
     }
 }
 
-void MainWindow::setupShortcuts(QWidget *target)
+void MainWindow::setupShortcuts()
 {
     // Navigation
-    new QShortcut(QKeySequence(Qt::Key_Right), target, this, &MainWindow::nextSlide);
-    new QShortcut(QKeySequence(Qt::Key_Down), target, this, &MainWindow::nextSlide);
-    new QShortcut(QKeySequence(Qt::Key_Space), target, this, &MainWindow::nextSlide);
+    new QShortcut(QKeySequence(Qt::Key_Right), this, SLOT(nextSlide()), nullptr, Qt::ApplicationShortcut);
+    new QShortcut(QKeySequence(Qt::Key_Down), this, SLOT(nextSlide()), nullptr, Qt::ApplicationShortcut);
+    new QShortcut(QKeySequence(Qt::Key_Space), this, SLOT(nextSlide()), nullptr, Qt::ApplicationShortcut);
 
-    new QShortcut(QKeySequence(Qt::Key_Left), target, this, &MainWindow::prevSlide);
-    new QShortcut(QKeySequence(Qt::Key_Up), target, this, &MainWindow::prevSlide);
-    new QShortcut(QKeySequence(Qt::Key_Backspace), target, this, &MainWindow::prevSlide);
+    new QShortcut(QKeySequence(Qt::Key_Left), this, SLOT(prevSlide()), nullptr, Qt::ApplicationShortcut);
+    new QShortcut(QKeySequence(Qt::Key_Up), this, SLOT(prevSlide()), nullptr, Qt::ApplicationShortcut);
+    new QShortcut(QKeySequence(Qt::Key_Backspace), this, SLOT(prevSlide()), nullptr, Qt::ApplicationShortcut);
 
-    new QShortcut(QKeySequence(Qt::Key_Home), target, this, &MainWindow::firstSlide);
-    new QShortcut(QKeySequence(Qt::Key_End), target, this, &MainWindow::lastSlide);
+    new QShortcut(QKeySequence(Qt::Key_Home), this, SLOT(firstSlide()), nullptr, Qt::ApplicationShortcut);
+    new QShortcut(QKeySequence(Qt::Key_End), this, SLOT(lastSlide()), nullptr, Qt::ApplicationShortcut);
 
     // Tools
-    // Tools
-    new QShortcut(QKeySequence(Qt::Key_L), target, this, &MainWindow::activateLaser);
-    new QShortcut(QKeySequence(Qt::Key_N), target, this, &MainWindow::resetCursor);
-    QShortcut *zoomShortcut = new QShortcut(QKeySequence(Qt::Key_Z), target);
-    connect(zoomShortcut, &QShortcut::activated, this, &MainWindow::toggleZoom);
-
-    QShortcut *timerShortcut = new QShortcut(QKeySequence(Qt::Key_P), target);
-    connect(timerShortcut, &QShortcut::activated, this, &MainWindow::toggleTimer);
-    new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_S), target, this, &MainWindow::toggleSplitView);
+    new QShortcut(QKeySequence(Qt::Key_L), this, SLOT(activateLaser()), nullptr, Qt::ApplicationShortcut);
+    new QShortcut(QKeySequence(Qt::Key_N), this, SLOT(resetCursor()), nullptr, Qt::ApplicationShortcut);
+    
+    QShortcut *zoomShortcut = new QShortcut(QKeySequence(Qt::Key_Z), this, SLOT(activateZoom()), nullptr, Qt::ApplicationShortcut);
+    // Note: using SLOT() macro for consistency with above, or new connection syntax. 
+    // Mixing them is fine but ApplicationShortcut is the key.
+    
+    QShortcut *timerShortcut = new QShortcut(QKeySequence(Qt::Key_P), this, SLOT(toggleTimer()), nullptr, Qt::ApplicationShortcut);
+    
+    new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_S), this, SLOT(toggleSplitView()), nullptr, Qt::ApplicationShortcut);
 
     // Screen Management
-    new QShortcut(QKeySequence(Qt::Key_S), target, this, &MainWindow::switchScreens);
+    new QShortcut(QKeySequence(Qt::Key_S), this, SLOT(switchScreens()), nullptr, Qt::ApplicationShortcut);
 
     // System
-    new QShortcut(QKeySequence(Qt::Key_Q), target, this, &MainWindow::quitApp);
-    new QShortcut(QKeySequence(Qt::Key_Escape), target, this, &MainWindow::quitApp);
+    new QShortcut(QKeySequence(Qt::Key_Q), this, SLOT(quitApp()), nullptr, Qt::ApplicationShortcut);
+    new QShortcut(QKeySequence(Qt::Key_Escape), this, SLOT(quitApp()), nullptr, Qt::ApplicationShortcut);
 }
 
 // Slots for Actions
@@ -136,20 +136,14 @@ void MainWindow::lastSlide()
     }
 }
 
-void MainWindow::toggleLaser()
-{
-    laserCheckBox->setChecked(!laserCheckBox->isChecked());
-    laserCheckBox->setChecked(!laserCheckBox->isChecked());
-}
-
+// toggleLaser removed
 void MainWindow::activateLaser()
 {
     // Force switch to Laser:
-    // 1. Disable Zoom if active
-    if (zoomCheckBox->isChecked()) {
-        zoomCheckBox->setChecked(false);
-    }
-    // 2. Enable Laser if not active
+    // 1. Disable Zoom unconditional
+    zoomCheckBox->setChecked(false);
+    
+    // 2. Enable Laser unconditional
     if (!laserCheckBox->isChecked()) {
         laserCheckBox->setChecked(true);
     }
@@ -159,13 +153,20 @@ void MainWindow::resetCursor()
 {
     // Switch to Normal:
     // Disable both
-    if (zoomCheckBox->isChecked()) zoomCheckBox->setChecked(false);
-    if (laserCheckBox->isChecked()) laserCheckBox->setChecked(false);
+    zoomCheckBox->setChecked(false);
+    laserCheckBox->setChecked(false);
 }
 
-void MainWindow::toggleZoom()
+void MainWindow::activateZoom()
 {
-    zoomCheckBox->setChecked(!zoomCheckBox->isChecked());
+    // Force switch to Zoom:
+    // 1. Disable Laser unconditional
+    laserCheckBox->setChecked(false);
+    
+    // 2. Enable Zoom unconditional
+    if (!zoomCheckBox->isChecked()) {
+        zoomCheckBox->setChecked(true);
+    }
 }
 
 void MainWindow::toggleTimer()

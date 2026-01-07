@@ -78,7 +78,7 @@ Or run the executable binary:
 | **Home** / **End** | Jump to First / Last Slide |
 | **L** | **Switch to Laser Pointer** (Disables Zoom) |
 | **N** | **Switch to Normal Cursor** (Disables Tools) |
-| **Z** | Toggle **Zoom Pointer** (Magnifier) |
+| **Z** | **Switch to Zoom Pointer** (Disables Laser) |
 | **S** | Toggle **Split View** (Beamer Mode) |
 | **Q** / **Esc** | Exit Application |
 

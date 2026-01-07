@@ -45,10 +45,10 @@ private slots:
     void prevSlide();
     void firstSlide();
     void lastSlide();
-    void toggleLaser();
+    // void toggleLaser(); // Removed
     void activateLaser(); // L: Switch to Laser (force Zoom off)
     void resetCursor();   // N: Switch to Normal (Laser/Zoom off)
-    void toggleZoom();
+    void activateZoom();  // Z: Switch to Zoom (force Laser off)
     void toggleTimer();
     void quitApp();
     
@@ -64,7 +64,7 @@ private:
     void updateViews();
     void detectScreens();
     void syncTocWithPage(int page);
-    void setupShortcuts(QWidget *target);
+    void setupShortcuts();
     void updateScreenControls();
     void loadSettings();
     void saveSettings();
