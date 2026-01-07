@@ -6,14 +6,21 @@ ifndef QMAKE
     QMAKE := $(shell command -v qmake 2> /dev/null)
 endif
 
-all: check_qmake
-	$(QMAKE) -o Makefile.qt my_presenter.pro
-	$(MAKE) -f Makefile.qt
+# Detect OS
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+    BUILD_DIR := build_macos
+else
+    BUILD_DIR := build_linux
+endif
 
-clean: check_qmake
-	-$(MAKE) -f Makefile.qt clean
-	rm -f Makefile.qt
-	rm -rf bin obj
+all: check_qmake
+	mkdir -p $(BUILD_DIR)
+	cd $(BUILD_DIR) && $(QMAKE) ../my_presenter.pro
+	cd $(BUILD_DIR) && $(MAKE)
+
+clean:
+	rm -rf $(BUILD_DIR)
 
 check_qmake:
 ifndef QMAKE

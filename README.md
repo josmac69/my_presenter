@@ -48,11 +48,25 @@ We provide a helper script for Debian-based systems (apt) and macOS (Homebrew) t
 make
 ```
 
+This will compile the application into a standard `build_linux` (on Linux) or `build_macos` (on macOS) directory to keep the source tree clean.
+
 ## Usage
 
-Run the application:
+Run the application depending on your OS:
+
+**Linux:**
 ```bash
-./bin/app
+./build_linux/bin/app
+```
+
+**macOS:**
+You can open the app bundle directly:
+```bash
+open build_macos/bin/app.app
+```
+Or run the executable binary:
+```bash
+./build_macos/bin/app.app/Contents/MacOS/app
 ```
 
 ### Controls (Presenter Console)
