@@ -537,8 +537,10 @@ void MainWindow::setupUi()
     controlsLayout->addSpacing(20);
     controlsLayout->addLayout(rightLayout);
     controlsLayout->addStretch();
-    // Enforce that the layout's minimum size IS the widget's minimum size
-    controlsLayout->setSizeConstraint(QLayout::SetMinimumSize);
+    // Removed duplicate lines that were here (addLayout right, addStretch)
+    
+    // REMOVED: controlsLayout->setSizeConstraint(QLayout::SetMinimumSize); 
+    // This was preventing expansion. Natural widget sizing handles minimums.
     
     // Allow horizontal expansion to fill space, vertical preference matched to content
     controlsContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
