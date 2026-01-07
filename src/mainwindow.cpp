@@ -244,6 +244,9 @@ void MainWindow::setupUi()
     infoDock->setWidget(infoContainer);
     addDockWidget(Qt::RightDockWidgetArea, infoDock);
 
+    // Global Stylesheet for Dock Borders
+    setStyleSheet("QDockWidget { border: 1px solid #aaa; } QMainWindow::separator { background: #dcdcdc; width: 4px; height: 4px; }");
+
     // 4. Dock: Timers (Bottom)
     timerDock = new QDockWidget("Timers", this);
     timerDock->setObjectName("TimerDock");
@@ -252,20 +255,57 @@ void MainWindow::setupUi()
     QWidget *timerContainer = new QWidget();
     QHBoxLayout *timerLayout = new QHBoxLayout(timerContainer);
     
-    QFont timerFont = font();
-    timerFont.setPointSize(14);
-    timerFont.setBold(true);
+    QFont defaultTimerFont = font();
+    defaultTimerFont.setPointSize(14);
+    defaultTimerFont.setBold(true);
     
+    // Clock Section
+    QVBoxLayout *clockGroup = new QVBoxLayout();
     timeLabel = new QLabel("00:00:00");
-    timeLabel->setFont(timerFont);
-    elapsedLabel = new QLabel("00:00:00");
-    elapsedLabel->setFont(timerFont);
+    timeLabel->setFont(defaultTimerFont);
+    timeLabel->setAlignment(Qt::AlignCenter);
+    
+    clockFontSlider = new QSlider(Qt::Horizontal);
+    clockFontSlider->setRange(10, 72);
+    clockFontSlider->setValue(14);
+    clockFontSlider->setFixedWidth(100);
+    clockFontSlider->setToolTip("Adjust Clock Font Size");
+    
+    connect(clockFontSlider, &QSlider::valueChanged, this, [this](int val){
+        QFont f = timeLabel->font();
+        f.setPointSize(val);
+        timeLabel->setFont(f);
+    });
 
-    timerLayout->addWidget(new QLabel("Time:"));
-    timerLayout->addWidget(timeLabel);
+    clockGroup->addWidget(new QLabel("Current Time:"));
+    clockGroup->addWidget(timeLabel);
+    clockGroup->addWidget(clockFontSlider);
+
+    // Elapsed Timer Section
+    QVBoxLayout *elapsedGroup = new QVBoxLayout();
+    elapsedLabel = new QLabel("00:00:00");
+    elapsedLabel->setFont(defaultTimerFont);
+    elapsedLabel->setAlignment(Qt::AlignCenter);
+
+    timerFontSlider = new QSlider(Qt::Horizontal);
+    timerFontSlider->setRange(10, 72);
+    timerFontSlider->setValue(14);
+    timerFontSlider->setFixedWidth(100);
+    timerFontSlider->setToolTip("Adjust Timer Font Size");
+
+    connect(timerFontSlider, &QSlider::valueChanged, this, [this](int val){
+        QFont f = elapsedLabel->font();
+        f.setPointSize(val);
+        elapsedLabel->setFont(f);
+    });
+
+    elapsedGroup->addWidget(new QLabel("Elapsed Time:"));
+    elapsedGroup->addWidget(elapsedLabel);
+    elapsedGroup->addWidget(timerFontSlider);
+
+    timerLayout->addLayout(clockGroup);
     timerLayout->addSpacing(30);
-    timerLayout->addWidget(new QLabel("Elapsed:"));
-    timerLayout->addWidget(elapsedLabel);
+    timerLayout->addLayout(elapsedGroup);
     timerLayout->addStretch();
     
     timerDock->setWidget(timerContainer);
@@ -786,6 +826,13 @@ void MainWindow::loadSettings()
         zoomMagSlider->setValue(mag);
     }
 
+    if (settings.contains("font/clockSize")) {
+        clockFontSlider->setValue(settings.value("font/clockSize").toInt());
+    }
+    if (settings.contains("font/timerSize")) {
+        timerFontSlider->setValue(settings.value("font/timerSize").toInt());
+    }
+
     if (settings.contains("window/consoleFullscreen")) {
         bool full = settings.value("window/consoleFullscreen").toBool();
         consoleFullscreenCheck->setChecked(full);
@@ -815,6 +862,9 @@ void MainWindow::saveSettings()
     settings.setValue("features/zoomSize", zoomSizeSlider->value());
     settings.setValue("features/zoomMag", zoomMagSlider->value());
     
+    settings.setValue("font/clockSize", clockFontSlider->value());
+    settings.setValue("font/timerSize", timerFontSlider->value());
+
     settings.setValue("window/consoleFullscreen", consoleFullscreenCheck->isChecked());
     settings.setValue("window/audienceFullscreen", audienceFullscreenCheck->isChecked());
     settings.setValue("window/aspectRatioLock", aspectRatioCheck->isChecked());

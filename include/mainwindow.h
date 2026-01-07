@@ -110,6 +110,10 @@ private:
     QSlider *zoomSizeSlider;
     QSlider *zoomMagSlider;
     
+    // Font Controls
+    QSlider *clockFontSlider;
+    QSlider *timerFontSlider;
+    
     // Window Controls
     QCheckBox *consoleFullscreenCheck;
     QCheckBox *audienceFullscreenCheck;
