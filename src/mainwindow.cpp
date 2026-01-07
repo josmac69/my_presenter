@@ -86,7 +86,7 @@ void MainWindow::setupShortcuts(QWidget *target)
     new QShortcut(QKeySequence(Qt::Key_L), target, this, &MainWindow::toggleLaser);
     QShortcut *zoomShortcut = new QShortcut(QKeySequence(Qt::Key_Z), target);
     connect(zoomShortcut, &QShortcut::activated, this, &MainWindow::toggleZoom);
-    
+
     QShortcut *timerShortcut = new QShortcut(QKeySequence(Qt::Key_P), target);
     connect(timerShortcut, &QShortcut::activated, this, &MainWindow::toggleTimer);
     new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_S), target, this, &MainWindow::toggleSplitView);
@@ -103,7 +103,7 @@ void MainWindow::setupShortcuts(QWidget *target)
 void MainWindow::nextSlide()
 {
     if (!timerRunning) toggleTimer();
-    
+
     if (currentPage < pdf->pageCount() - 1) {
         currentPage++;
         updateViews();
@@ -192,51 +192,55 @@ void MainWindow::setupUi()
     // 1. Central Widget: Empty (to allow full dock flexibility)
     QWidget *dummyCentral = new QWidget(this);
     // Setting fixed/zero size anchors the layout engine without taking space
-    dummyCentral->setMaximumSize(0, 0); 
+    dummyCentral->setMaximumSize(0, 0);
     setCentralWidget(dummyCentral);
     // Do NOT hide(). Hiding causes layout instability (creep).
-    
+
     // 1b. Dock: Current Slide (Was Central)
     currentSlideDock = new QDockWidget("Current Slide", this);
     currentSlideDock->setObjectName("CurrentSlideDock");
+    currentSlideDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    currentSlideDock->setTitleBarWidget(new QWidget(this)); // Hide Title Bar
     currentSlideDock->setAllowedAreas(Qt::AllDockWidgetAreas);
-    
+
     QWidget *currentSlideContainer = new QWidget();
     QVBoxLayout *currentSlideLayout = new QVBoxLayout(currentSlideContainer);
     currentSlideLayout->setContentsMargins(0, 0, 0, 0);
 
     // Reuse existing pointers for logic constraint
     // But we need to instantiate them if they were part of old central
-    
+
     QLabel *currentSlideTitle = new QLabel("Current Slide");
     currentSlideTitle->setStyleSheet("font-weight: bold; padding: 5px;");
     currentSlideTitle->setAlignment(Qt::AlignCenter);
-    
+
     currentSlideView = new QLabel("Current Slide");
     currentSlideView->setAlignment(Qt::AlignCenter);
     currentSlideView->setStyleSheet("background: #dddddd; border: 1px solid #999;");
     currentSlideView->setStyleSheet("background: #dddddd; border: 1px solid #999;");
     // Force aggressive expansion to prevent side docks (Notes) from creeping in
     // UPDATE: User wants free resize + no creep. Ignored policy breaks the loop.
-    currentSlideView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored); 
+    currentSlideView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     currentSlideView->setMinimumSize(50, 50);
     currentSlideView->installEventFilter(this); // Catch resize events
 
     currentSlideLayout->addWidget(currentSlideTitle);
     currentSlideLayout->addWidget(currentSlideView);
-    
+
     currentSlideDock->setWidget(currentSlideContainer);
     addDockWidget(Qt::TopDockWidgetArea, currentSlideDock); // Default position
 
     // 2. Dock: Chapters (Left)
     tocDock = new QDockWidget("Chapters", this);
     tocDock->setObjectName("ChaptersDock");
+    tocDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    tocDock->setTitleBarWidget(new QWidget(this));
     tocDock->setAllowedAreas(Qt::AllDockWidgetAreas);
-    
+
     QWidget *tocContainer = new QWidget();
     // Ensure the container matches the list background (usually white)
     tocContainer->setStyleSheet("background-color: palette(base); color: palette(text);");
-    
+
     QVBoxLayout *tocLayout = new QVBoxLayout(tocContainer);
     tocLayout->setContentsMargins(0, 0, 0, 0);
     tocLayout->setSpacing(0);
@@ -254,33 +258,35 @@ void MainWindow::setupUi()
     tocView->setModel(bookmarkModel);
     tocView->setHeaderHidden(true);
     // Remove frame to blend with buttons
-    tocView->setFrameShape(QFrame::NoFrame); 
+    tocView->setFrameShape(QFrame::NoFrame);
     connect(tocView, &QTreeView::activated, this, &MainWindow::onBookmarkActivated);
     connect(tocView, &QTreeView::clicked, this, &MainWindow::onBookmarkActivated);
-    
+
     // End Button
     QPushButton *endNavBtn = new QPushButton("--- end ---");
     endNavBtn->setFlat(true);
     // Top border to separate from list if needed, or keeping it seamless
-    endNavBtn->setStyleSheet("text-align: left; padding: 5px; border: none;"); 
+    endNavBtn->setStyleSheet("text-align: left; padding: 5px; border: none;");
     endNavBtn->setCursor(Qt::PointingHandCursor);
     connect(endNavBtn, &QPushButton::clicked, this, &MainWindow::lastSlide);
 
     tocLayout->addWidget(startNavBtn);
     tocLayout->addWidget(tocView);
     tocLayout->addWidget(endNavBtn);
-    
+
     tocDock->setWidget(tocContainer);
     addDockWidget(Qt::LeftDockWidgetArea, tocDock);
 
     // 3a. Dock: Next Slide (Right Top)
     nextSlideDock = new QDockWidget("Next Slide", this);
     nextSlideDock->setObjectName("NextSlideDock");
+    nextSlideDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    nextSlideDock->setTitleBarWidget(new QWidget(this));
     nextSlideDock->setAllowedAreas(Qt::AllDockWidgetAreas);
 
     QWidget *nextSlideContainer = new QWidget();
     QVBoxLayout *nextSlideLayout = new QVBoxLayout(nextSlideContainer);
-    
+
     nextSlideView = new QLabel("Next Slide");
     nextSlideView->setAlignment(Qt::AlignCenter);
     nextSlideView->setStyleSheet("background: #eeeeee; border: 1px dashed #aaa;");
@@ -289,7 +295,7 @@ void MainWindow::setupUi()
     // UPDATE: User reported 'creep' with Expanding. Reverting to Preferred (or Ignored) to stabilize.
     // Ignored prevents the widget from pushing the dock based on pixmap size.
     nextSlideView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-    
+
     nextSlideLayout->addWidget(nextSlideView);
     nextSlideDock->setWidget(nextSlideContainer);
     addDockWidget(Qt::RightDockWidgetArea, nextSlideDock);
@@ -297,15 +303,17 @@ void MainWindow::setupUi()
     // 3b. Dock: Notes + Help (Right Bottom -> Now Center Bottom)
     notesDock = new QDockWidget("Notes", this);
     notesDock->setObjectName("NotesDock");
+    notesDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    notesDock->setTitleBarWidget(new QWidget(this));
     notesDock->setAllowedAreas(Qt::AllDockWidgetAreas);
-    
+
     QWidget *notesContainer = new QWidget();
     QVBoxLayout *notesLayout = new QVBoxLayout(notesContainer);
-    
+
     notesView = new QTextEdit();
     notesView->setPlaceholderText("Notes for this slide...");
     notesView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-    
+
     notesImageView = new QLabel("Notes View");
     notesImageView->setAlignment(Qt::AlignCenter);
     notesImageView->setStyleSheet("background: white; border: 1px solid #ccc;");
@@ -313,18 +321,20 @@ void MainWindow::setupUi()
 
     notesLayout->addWidget(notesView);
     notesLayout->addWidget(notesImageView);
-    
+
     notesDock->setWidget(notesContainer);
     // Add to Top Area (Center) then split vertically from Current Slide
     addDockWidget(Qt::TopDockWidgetArea, notesDock);
     splitDockWidget(currentSlideDock, notesDock, Qt::Vertical);
-    
+
     // Global Stylesheet for Dock Borders
     setStyleSheet("QDockWidget { border: 1px solid #aaa; } QMainWindow::separator { background: #dcdcdc; width: 4px; height: 4px; }");
 
     // 4. Dock: Control Center (Bottom -> Now Right Bottom)
     controlCenterDock = new QDockWidget("Control Center", this);
     controlCenterDock->setObjectName("ControlCenterDock");
+    controlCenterDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    controlCenterDock->setTitleBarWidget(new QWidget(this));
     controlCenterDock->setAllowedAreas(Qt::AllDockWidgetAreas);
 
     QWidget *centerContainer = new QWidget();
@@ -334,13 +344,13 @@ void MainWindow::setupUi()
     // --- Subframe 1: Controls ---
     QFrame *controlsFrame = new QFrame();
     controlsFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
-    controlsFrame->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred); 
-    
+    controlsFrame->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+
     QHBoxLayout *controlsLayout = new QHBoxLayout(controlsFrame);
     controlsLayout->setContentsMargins(5, 5, 5, 5);
-    
+
     // Left: Window Modes
-    QVBoxLayout *leftLayout = new QVBoxLayout(); 
+    QVBoxLayout *leftLayout = new QVBoxLayout();
     consoleFullscreenCheck = new QCheckBox("Console Fullscreen");
     connect(consoleFullscreenCheck, &QCheckBox::toggled, this, &MainWindow::toggleConsoleFullscreen);
     audienceFullscreenCheck = new QCheckBox("Audience Fullscreen");
@@ -351,14 +361,14 @@ void MainWindow::setupUi()
     leftLayout->addWidget(audienceFullscreenCheck);
     leftLayout->addWidget(aspectRatioCheck);
     leftLayout->addStretch();
-    
+
     // Right: Features
     QVBoxLayout *rightLayout = new QVBoxLayout();
     laserCheckBox = new QCheckBox("Laser (L)");
     connect(laserCheckBox, &QCheckBox::toggled, this, [this](bool checked){ showLaser = checked; presentationDisplay->enableLaserPointer(checked); });
     zoomCheckBox = new QCheckBox("Zoom (Z)");
     connect(zoomCheckBox, &QCheckBox::toggled, this, [this](bool checked){ presentationDisplay->enableZoom(checked); });
-    
+
     // Zoom Sliders
     QLabel *sizeLabel = new QLabel("Size: 250px");
     QSlider *sizeSlider = new QSlider(Qt::Horizontal);
@@ -367,7 +377,7 @@ void MainWindow::setupUi()
     QSlider *magSlider = new QSlider(Qt::Horizontal);
     magSlider->setRange(2, 5); magSlider->setValue(2); magSlider->setFixedWidth(100);
     zoomSizeSlider = sizeSlider; zoomMagSlider = magSlider;
-    
+
     connect(sizeSlider, &QSlider::valueChanged, this, [this, sizeLabel](int val){ sizeLabel->setText(QString("Size: %1px").arg(val)); presentationDisplay->setZoomSettings(zoomMagSlider->value(), val); });
     connect(magSlider, &QSlider::valueChanged, this, [this, magLabel](int val){ magLabel->setText(QString("Mag: %1x").arg(val)); presentationDisplay->setZoomSettings(val, zoomSizeSlider->value()); });
 
@@ -377,7 +387,7 @@ void MainWindow::setupUi()
     connect(resetLayoutButton, &QPushButton::clicked, this, &MainWindow::resetLayout);
     closeButton = new QPushButton("Close Presenter");
     closeButton->setFixedWidth(120);
-    closeButton->setStyleSheet("background-color: #ffcccc; padding: 5px;"); 
+    closeButton->setStyleSheet("background-color: #ffcccc; padding: 5px;");
     connect(closeButton, &QPushButton::clicked, this, &MainWindow::close);
 
     rightLayout->addWidget(laserCheckBox);
@@ -403,7 +413,7 @@ void MainWindow::setupUi()
     QFrame *timerFrame = new QFrame();
     timerFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
     QVBoxLayout *elapsedLayout = new QVBoxLayout(timerFrame); // Vertical layout for timer
-    
+
     QFont defaultTimerFont("Nimbus Sans", 14, QFont::Bold); defaultTimerFont.setBold(true);
     elapsedLabel = new QLabel("00:00:00");
     elapsedLabel->setFont(defaultTimerFont);
@@ -414,29 +424,29 @@ void MainWindow::setupUi()
     timerFontSlider->setValue(14);
     timerFontSlider->setFixedWidth(100);
     connect(timerFontSlider, &QSlider::valueChanged, this, [this](int val){ QFont f = elapsedLabel->font(); f.setPointSize(val); elapsedLabel->setFont(f); });
-    
+
     timerColorButton = new QPushButton("Color");
     timerColorButton->setFixedWidth(100);
     connect(timerColorButton, &QPushButton::clicked, this, [this](){
         QColor color = QColorDialog::getColor(Qt::black, this, "Select Timer Color");
         if (color.isValid()) { elapsedLabel->setStyleSheet(QString("color: %1").arg(color.name())); elapsedLabel->setProperty("customColor", color.name()); }
     });
-    
+
     timerFontButton = new QPushButton("Font");
     timerFontButton->setFixedWidth(100);
     connect(timerFontButton, &QPushButton::clicked, this, [this](){
         bool ok; QFont font = QFontDialog::getFont(&ok, elapsedLabel->font(), this, "Select Timer Font");
         if (ok) { timerFontSlider->setValue(font.pointSize()); elapsedLabel->setFont(font); update(); }
     });
-    
+
     timerButton = new QPushButton("Start timer");
     connect(timerButton, &QPushButton::clicked, this, &MainWindow::toggleTimer);
-    
+
     QHBoxLayout *timerHeader = new QHBoxLayout();
     timerHeader->addWidget(new QLabel("Timer:"));
     timerHeader->addStretch();
     timerHeader->addWidget(timerButton);
-    
+
     elapsedLayout->addLayout(timerHeader);
     elapsedLayout->addWidget(elapsedLabel);
     elapsedLayout->addWidget(timerFontSlider);
@@ -448,11 +458,11 @@ void MainWindow::setupUi()
     QFrame *clockFrame = new QFrame();
     clockFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
     QVBoxLayout *clockLayout = new QVBoxLayout(clockFrame);
-    
+
     timeLabel = new QLabel("00:00:00");
     timeLabel->setFont(defaultTimerFont);
     timeLabel->setAlignment(Qt::AlignCenter);
-    
+
     clockFontSlider = new QSlider(Qt::Horizontal);
     clockFontSlider->setRange(10, 72);
     clockFontSlider->setValue(14);
@@ -495,24 +505,26 @@ void MainWindow::setupUi()
     // 6. Dock: Monitor Manager (Separate)
     screenDock = new QDockWidget("Monitor Manager", this);
     screenDock->setObjectName("ScreenDock");
-    
+    screenDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    screenDock->setTitleBarWidget(new QWidget(this));
+
     QWidget *screenContainer = new QWidget();
     QVBoxLayout *scrLayout = new QVBoxLayout(screenContainer);
-    
-    // screenHelpLabel was removed from top. 
+
+    // screenHelpLabel was removed from top.
     // User wants "Help Text" defined earlier (Global Hotkeys) here?
     // "Print help text in monitor manager... Print it below part for managing windows"
-    
+
     switchScreenButton = new QPushButton("Switch Screens (S)");
     connect(switchScreenButton, &QPushButton::clicked, this, &MainWindow::switchScreens);
-    
+
     screenSelector = new ScreenSelectorWidget(this);
     connect(screenSelector, &ScreenSelectorWidget::audienceScreenChanged, this, &MainWindow::onAudienceScreenSelected);
     connect(screenSelector, &ScreenSelectorWidget::consoleScreenChanged, this, &MainWindow::onConsoleScreenSelected);
 
     scrLayout->addWidget(switchScreenButton);
     scrLayout->addWidget(screenSelector);
-    
+
     // Add Help Label Here
     QLabel *helpLabel = new QLabel(
         "<b>Hotkeys:</b><br>"
@@ -524,9 +536,9 @@ void MainWindow::setupUi()
         "P: Timer | Q: Quit"
     );
     // Use default font size, maybe just a bit of margin
-    helpLabel->setStyleSheet("margin-top: 10px; color: #333;"); 
+    helpLabel->setStyleSheet("margin-top: 10px; color: #333;");
     helpLabel->setWordWrap(true);
-    
+
     scrLayout->addWidget(helpLabel);
     scrLayout->addStretch();
 
@@ -535,13 +547,13 @@ void MainWindow::setupUi()
 
     setWindowTitle("Presenter Console");
     resize(1200, 800);
-    
+
     // Set Default Layout Proportions: 25% Left, 50% Center, 25% Right
     // 1200px * 0.25 = 300px
     resizeDocks({tocDock, screenDock}, {300, 300}, Qt::Horizontal);
     // Right column is now Next Slide + Control Center
     resizeDocks({nextSlideDock, controlCenterDock}, {300, 300}, Qt::Horizontal);
-    
+
     // Capture this state as the default
     defaultState = saveState();
 }
@@ -692,20 +704,20 @@ void MainWindow::onConsoleScreenSelected(int index)
 
     // Move Console Window
     windowHandle()->setScreen(screens[index]);
-    
+
     // Center logic
     QRect screenGeo = screens[index]->availableGeometry();
     QRect windowGeo = geometry();
     windowGeo.moveCenter(screenGeo.center());
     setGeometry(windowGeo);
-    
+
     // Ensure it respects fullscreen
     if (consoleFullscreenCheck->isChecked()) {
         showFullScreen();
     } else {
         showNormal();
     }
-    
+
     // Update Selector
     screenSelector->setConsoleScreen(index);
 }
@@ -752,12 +764,12 @@ void MainWindow::loadPdf(const QString &filePath)
 {
     currentPage = 0;
     pdf->load(filePath);
-    
+
     QFileInfo fi(filePath);
     if (presentationDisplay) {
         presentationDisplay->setWindowTitle("Audience Window - " + fi.fileName());
     }
-    
+
     // UI update handled by statusChanged signal
 }
 
@@ -978,7 +990,7 @@ void MainWindow::loadSettings()
 
     if (settings.contains("font/clockSize")) {
         int sz = settings.value("font/clockSize").toInt();
-        if (sz < 10) sz = 14; 
+        if (sz < 10) sz = 14;
         clockFontSlider->setValue(sz);
     }
     if (settings.contains("font/timerSize")) {
@@ -986,7 +998,7 @@ void MainWindow::loadSettings()
         if (sz < 10) sz = 14;
         timerFontSlider->setValue(sz);
     }
-    
+
     // Load Fonts (Family/Style)
     if (settings.contains("font/clockFont")) {
          QFont f;
@@ -1015,7 +1027,7 @@ void MainWindow::loadSettings()
         elapsedLabel->setStyleSheet(QString("color: %1").arg(colorName));
         elapsedLabel->setProperty("customColor", colorName);
     }
-    
+
     // ... rest of loadSettings
     if (settings.contains("window/consoleFullscreen")) {
         bool full = settings.value("window/consoleFullscreen").toBool();
@@ -1027,7 +1039,7 @@ void MainWindow::loadSettings()
         bool full = settings.value("window/audienceFullscreen").toBool();
         audienceFullscreenCheck->setChecked(full);
     }
-    
+
     if (settings.contains("window/aspectRatioLock")) {
         bool locked = settings.value("window/aspectRatioLock").toBool();
         aspectRatioCheck->setChecked(locked);
@@ -1045,30 +1057,30 @@ void MainWindow::saveSettings()
     settings.setValue("features/zoom", zoomCheckBox->isChecked());
     settings.setValue("features/zoomSize", zoomSizeSlider->value());
     settings.setValue("features/zoomMag", zoomMagSlider->value());
-    
+
     settings.setValue("font/clockSize", clockFontSlider->value());
     settings.setValue("font/timerSize", timerFontSlider->value());
-    
+
     if (timeLabel->palette().color(QPalette::WindowText).isValid())
          settings.setValue("font/clockColor", timeLabel->palette().color(QPalette::WindowText).name());
-         
+
     // Note: Since we use stylesheets, we might need a stored member or parse the stylesheet to get the color back effectively if palette update isn't immediate.
     // However, setStyleSheet usually updates the widget's palette. Let's make sure we save the style sheet color or just the last picked one.
     // Better strategy: We don't have a member for color, so we rely on what was set.
     // Actually, reading back from stylesheet string is messy.
     // Let's rely on the property we just set.
-    
+
     // Simpler approach: Store the color string in a dynamic property 'customColor' when setting it?
-    // Or just save what we can. 
-    // Updated plan: The lambda sets stylesheet. We can parse it or store it. 
+    // Or just save what we can.
+    // Updated plan: The lambda sets stylesheet. We can parse it or store it.
     // Let's assume for now we just save if we have a way.
     // Actually, simpler: define members `QString clockColorStr` and `QString timerColorStr`.
-    // But modification of Header again? 
+    // But modification of Header again?
     // Let's use QSettings to store what we put in the stylesheet if we can't easily retrieve it.
-    // Wait, I can just use `timeLabel->palette().color(QPalette::WindowText).name()`? 
+    // Wait, I can just use `timeLabel->palette().color(QPalette::WindowText).name()`?
     // setStyleSheet does NOT always update the palette accessors immediately or reliably for saving.
     // Reliable way: Extract from stylesheet or use a property.
-    
+
     // Let's use dynamic properties for storage without header change.
     settings.setValue("font/clockColor", timeLabel->property("customColor"));
     settings.setValue("font/timerColor", elapsedLabel->property("customColor"));
