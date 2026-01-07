@@ -1,10 +1,14 @@
 #include "presentationdisplay.h"
 #include <QPainterPath>
 #include <QPen>
+#include <QWindow>
+#include <QGuiApplication>
+#include <QScreen>
 
 PresentationDisplay::PresentationDisplay(QWidget *parent)
     : QWidget(parent), pdf(nullptr), currentPage(0), splitView(false),
-      laserActive(false), zoomActive(false), zoomFactor(2.0f), zoomDiameter(250)
+      laserActive(false), zoomActive(false), zoomFactor(2.0f), zoomDiameter(250),
+      lockedAspectRatio(false), isResizing(false)
 {
     setMouseTracking(true);
     setAttribute(Qt::WA_OpaquePaintEvent);
@@ -111,8 +115,60 @@ QCursor PresentationDisplay::createLaserCursor()
 
 void PresentationDisplay::resizeEvent(QResizeEvent *)
 {
+    // If in Fullscreen mode, do NOT resize the window. 
+    // The paintEvent handles centering and black bars.
+    if (isFullScreen()) {
+        refreshSlide();
+        return;
+    }
+
+    if (lockedAspectRatio && !isResizing && pdf && pdf->pageCount() > 0) {
+        
+        QSizeF pageSize = pdf->pagePointSize(currentPage);
+        if (!pageSize.isEmpty() && pageSize.height() > 0) {
+            double aspect = pageSize.width() / pageSize.height();
+            if (splitView) aspect /= 2.0;
+
+            // Get available screen geometry
+            QScreen *scr = screen();
+            if (!scr && windowHandle()) scr = windowHandle()->screen();
+            if (!scr) scr = QGuiApplication::primaryScreen();
+            
+            QRect avail = scr ? scr->availableGeometry() : QRect(0, 0, 1920, 1080);
+            
+            int targetW = width();
+            int targetH = static_cast<int>(targetW / aspect);
+
+            // Constrain to screen bounds
+            if (targetW > avail.width()) {
+                targetW = avail.width();
+                targetH = static_cast<int>(targetW / aspect);
+            }
+            
+            if (targetH > avail.height()) {
+                targetH = avail.height();
+                targetW = static_cast<int>(targetH * aspect);
+            }
+            
+            // Check delta to avoid infinite loops due to integer rounding
+            if (abs(width() - targetW) > 2 || abs(height() - targetH) > 2) {
+                isResizing = true;
+                resize(targetW, targetH);
+                isResizing = false;
+            }
+        }
+    }
     // Re-render on resize to maintain crisp quality
     refreshSlide();
+}
+
+void PresentationDisplay::setAspectRatioLock(bool locked)
+{
+    lockedAspectRatio = locked;
+    if (locked) {
+        // Trigger resize logic
+        resizeEvent(nullptr);
+    }
 }
 
 void PresentationDisplay::mouseMoveEvent(QMouseEvent *event)

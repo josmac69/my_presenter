@@ -25,6 +25,7 @@ public:
     void enableLaserPointer(bool active);
     void enableZoom(bool active);
     void setZoomSettings(float factor, int diameter);
+    void setAspectRatioLock(bool locked);
     
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -49,6 +50,10 @@ private:
     float zoomFactor;
     int zoomDiameter;
     QPoint mousePos;
+    
+    // Window Mode
+    bool lockedAspectRatio;
+    bool isResizing;
 };
 
 #endif // PRESENTATIONDISPLAY_H

@@ -18,6 +18,7 @@ public:
 
 signals:
     void audienceScreenChanged(int index);
+    void consoleScreenChanged(int index);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -31,11 +32,17 @@ private:
     QRectF virtualRect;       // Normalized bounding box of all screens
     QList<QRectF> mapRects;   // Normalized rects for painting
     
+    // Store exact rects of icons for hit testing
+    QList<QRectF> audienceIconRects; 
+    QList<QRectF> consoleIconRects;
+
     int currentAudienceIndex;
     int currentConsoleIndex;
     int previewIndex; // For visualizing drag before commit
+    
+    enum class DragTarget { None, Audience, Console };
+    DragTarget currentDragTarget;
     bool isDragging;
-    QPoint dragStartPos;
 };
 
 #endif // SCREENSELECTORWIDGET_H

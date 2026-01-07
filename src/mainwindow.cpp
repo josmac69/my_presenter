@@ -354,13 +354,42 @@ void MainWindow::setupUi()
 
     screenSelector = new ScreenSelectorWidget(this);
     connect(screenSelector, &ScreenSelectorWidget::audienceScreenChanged, this, &MainWindow::onAudienceScreenSelected);
+    connect(screenSelector, &ScreenSelectorWidget::consoleScreenChanged, this, &MainWindow::onConsoleScreenSelected);
     screenSelector->hide(); // Hidden by default
 
+    QLabel *screenHelpLabel = new QLabel("<b>Monitor Manager:</b> Drag the 'A' (Audience) icon to move the presentation screen. 'C' shows your Console location.");
+    screenHelpLabel->setWordWrap(true);
+    screenHelpLabel->setStyleSheet("QLabel { color: #555; margin-bottom: 5px; }");
+    
+    screenLayout->addWidget(screenHelpLabel);
     screenLayout->addWidget(switchScreenButton);
     screenLayout->addWidget(screenSelector);
     screenLayout->addStretch();
 
+    screenLayout->addWidget(screenSelector);
+    screenLayout->addStretch();
+    
     controlsLayout->addLayout(screenLayout);
+
+    // Window Mode Controls
+    QHBoxLayout *windowModeLayout = new QHBoxLayout();
+    
+    consoleFullscreenCheck = new QCheckBox("Console Fullscreen");
+    connect(consoleFullscreenCheck, &QCheckBox::toggled, this, &MainWindow::toggleConsoleFullscreen);
+    
+    audienceFullscreenCheck = new QCheckBox("Audience Fullscreen");
+    connect(audienceFullscreenCheck, &QCheckBox::toggled, this, &MainWindow::toggleAudienceFullscreen);
+    
+    aspectRatioCheck = new QCheckBox("Lock Aspect Ratio");
+    connect(aspectRatioCheck, &QCheckBox::toggled, this, &MainWindow::toggleAspectRatioLock);
+    
+    windowModeLayout->addWidget(consoleFullscreenCheck);
+    windowModeLayout->addWidget(audienceFullscreenCheck);
+    windowModeLayout->addWidget(aspectRatioCheck);
+    windowModeLayout->addStretch();
+    
+    controlsLayout->addLayout(windowModeLayout);
+
     mainLayout->addLayout(controlsLayout);
 
     setCentralWidget(centralWidget);
@@ -385,7 +414,11 @@ void MainWindow::detectScreens()
     } else {
         // Single screen mode
         presentationDisplay->resize(800, 600);
-        presentationDisplay->show();
+        if (audienceFullscreenCheck->isChecked()) {
+            presentationDisplay->showFullScreen();
+        } else {
+            presentationDisplay->show();
+        }
     }
 }
 
@@ -500,6 +533,35 @@ void MainWindow::onAudienceScreenSelected(int index)
     }
 }
 
+void MainWindow::onConsoleScreenSelected(int index)
+{
+    QList<QScreen*> screens = QGuiApplication::screens();
+    if (index < 0 || index >= screens.size()) return;
+
+    if (!windowHandle()) {
+        createWinId();
+    }
+
+    // Move Console Window
+    windowHandle()->setScreen(screens[index]);
+    
+    // Center logic
+    QRect screenGeo = screens[index]->availableGeometry();
+    QRect windowGeo = geometry();
+    windowGeo.moveCenter(screenGeo.center());
+    setGeometry(windowGeo);
+    
+    // Ensure it respects fullscreen
+    if (consoleFullscreenCheck->isChecked()) {
+        showFullScreen();
+    } else {
+        showNormal();
+    }
+    
+    // Update Selector
+    screenSelector->setConsoleScreen(index);
+}
+
 void MainWindow::syncTocWithPage(int page)
 {
     if (!bookmarkModel) return;
@@ -542,6 +604,12 @@ void MainWindow::loadPdf(const QString &filePath)
 {
     currentPage = 0;
     pdf->load(filePath);
+    
+    QFileInfo fi(filePath);
+    if (presentationDisplay) {
+        presentationDisplay->setWindowTitle("Audience Window - " + fi.fileName());
+    }
+    
     // UI update handled by statusChanged signal
 }
 
@@ -668,6 +736,32 @@ void MainWindow::toggleSplitView()
                                           : "Standard Mode Enabled");
 }
 
+void MainWindow::toggleConsoleFullscreen(bool enabled)
+{
+    if (enabled) showFullScreen();
+    else showNormal();
+}
+
+void MainWindow::toggleAudienceFullscreen(bool enabled)
+{
+    if (presentationDisplay) {
+        if (enabled) {
+            presentationDisplay->showFullScreen();
+        } else {
+            presentationDisplay->showNormal();
+            // Force a small resize or activate to ensure window manager updates decorations
+            presentationDisplay->activateWindow();
+        }
+    }
+}
+
+void MainWindow::toggleAspectRatioLock(bool enabled)
+{
+    if (presentationDisplay) {
+        presentationDisplay->setAspectRatioLock(enabled);
+    }
+}
+
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
     QMainWindow::resizeEvent(event);
@@ -714,6 +808,22 @@ void MainWindow::loadSettings()
         int mag = settings.value("features/zoomMag").toInt();
         zoomMagSlider->setValue(mag);
     }
+
+    if (settings.contains("window/consoleFullscreen")) {
+        bool full = settings.value("window/consoleFullscreen").toBool();
+        consoleFullscreenCheck->setChecked(full);
+        // Signal connection handles showFullScreen()
+    }
+
+    if (settings.contains("window/audienceFullscreen")) {
+        bool full = settings.value("window/audienceFullscreen").toBool();
+        audienceFullscreenCheck->setChecked(full);
+    }
+    
+    if (settings.contains("window/aspectRatioLock")) {
+        bool locked = settings.value("window/aspectRatioLock").toBool();
+        aspectRatioCheck->setChecked(locked);
+    }
 }
 
 void MainWindow::saveSettings()
@@ -728,4 +838,8 @@ void MainWindow::saveSettings()
     settings.setValue("features/zoom", zoomCheckBox->isChecked());
     settings.setValue("features/zoomSize", zoomSizeSlider->value());
     settings.setValue("features/zoomMag", zoomMagSlider->value());
+    
+    settings.setValue("window/consoleFullscreen", consoleFullscreenCheck->isChecked());
+    settings.setValue("window/audienceFullscreen", audienceFullscreenCheck->isChecked());
+    settings.setValue("window/aspectRatioLock", aspectRatioCheck->isChecked());
 }

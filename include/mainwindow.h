@@ -48,6 +48,7 @@ private slots:
     void switchScreens();
     void onScreenCountChanged();
     void onAudienceScreenSelected(int index);
+    void onConsoleScreenSelected(int index);
 
 private:
     void loadPdf(const QString &filePath);
@@ -59,6 +60,11 @@ private:
     void updateScreenControls();
     void loadSettings();
     void saveSettings();
+    
+    // Window Mode Slots
+    void toggleConsoleFullscreen(bool enabled);
+    void toggleAudienceFullscreen(bool enabled);
+    void toggleAspectRatioLock(bool enabled);
 
     // Data
     QPdfDocument *pdf;
@@ -69,9 +75,9 @@ private:
 
     // Timers
     QTimer *clockTimer;
+    QTimer *resizeTimer;
     QTime startTime;
     bool timerRunning;
-    QTimer *resizeTimer;
 
     // Screen Management
     QPushButton *switchScreenButton;
@@ -93,6 +99,11 @@ private:
     QCheckBox *zoomCheckBox;
     QSlider *zoomSizeSlider;
     QSlider *zoomMagSlider;
+    
+    // Window Controls
+    QCheckBox *consoleFullscreenCheck;
+    QCheckBox *audienceFullscreenCheck;
+    QCheckBox *aspectRatioCheck;
     
     // Audience Window
     PresentationDisplay *presentationDisplay;
