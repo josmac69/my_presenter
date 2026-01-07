@@ -7,6 +7,7 @@
 #include <QVBoxLayout>
 #include <QHeaderView>
 #include <QMessageBox>
+#include <QSettings>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), currentPage(0), showLaser(false), useSplitView(false), timerRunning(false)
@@ -22,8 +23,12 @@ MainWindow::MainWindow(QWidget *parent)
     connect(clockTimer, &QTimer::timeout, this, &MainWindow::updateTimers);
     clockTimer->start(1000);
 
+    resizeTimer = new QTimer(this);
+    resizeTimer->setSingleShot(true);
+    connect(resizeTimer, &QTimer::timeout, this, &MainWindow::updateViews);
+
     setupUi();
-    
+
     // Setup shortcuts for both windows
     setupShortcuts(this);
     setupShortcuts(presentationDisplay);
@@ -33,7 +38,7 @@ MainWindow::MainWindow(QWidget *parent)
     if (windowHandle()) {
          connect(windowHandle(), &QWindow::screenChanged, this, &MainWindow::updateScreenControls);
     }
-    
+
     // Auto-open for convenience
     QTimer::singleShot(0, this, [this](){
         QString fileName = QFileDialog::getOpenFileName(this, "Open PDF", "", "PDF Files (*.pdf)");
@@ -50,6 +55,8 @@ MainWindow::MainWindow(QWidget *parent)
             presentationDisplay->setDocument(pdf);
         }
     });
+
+    loadSettings();
 }
 
 MainWindow::~MainWindow()
@@ -66,29 +73,29 @@ void MainWindow::setupShortcuts(QWidget *target)
     new QShortcut(QKeySequence(Qt::Key_Right), target, this, &MainWindow::nextSlide);
     new QShortcut(QKeySequence(Qt::Key_Down), target, this, &MainWindow::nextSlide);
     new QShortcut(QKeySequence(Qt::Key_Space), target, this, &MainWindow::nextSlide);
-    
+
     new QShortcut(QKeySequence(Qt::Key_Left), target, this, &MainWindow::prevSlide);
     new QShortcut(QKeySequence(Qt::Key_Up), target, this, &MainWindow::prevSlide);
     new QShortcut(QKeySequence(Qt::Key_Backspace), target, this, &MainWindow::prevSlide);
-    
+
     new QShortcut(QKeySequence(Qt::Key_Home), target, this, &MainWindow::firstSlide);
     new QShortcut(QKeySequence(Qt::Key_End), target, this, &MainWindow::lastSlide);
-    
+
     // Tools
     new QShortcut(QKeySequence(Qt::Key_L), target, this, &MainWindow::toggleLaser);
     new QShortcut(QKeySequence(Qt::Key_Z), target, this, &MainWindow::toggleZoom);
     new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_S), target, this, &MainWindow::toggleSplitView);
-    
+
     // Screen Management
     new QShortcut(QKeySequence(Qt::Key_S), target, this, &MainWindow::switchScreens);
-    
+
     // System
     new QShortcut(QKeySequence(Qt::Key_Q), target, this, &MainWindow::quitApp);
     new QShortcut(QKeySequence(Qt::Key_Escape), target, this, &MainWindow::quitApp);
 }
 
 // Slots for Actions
-void MainWindow::nextSlide() 
+void MainWindow::nextSlide()
 {
     if (currentPage < pdf->pageCount() - 1) {
         currentPage++;
@@ -96,7 +103,7 @@ void MainWindow::nextSlide()
     }
 }
 
-void MainWindow::prevSlide() 
+void MainWindow::prevSlide()
 {
     if (currentPage > 0) {
         currentPage--;
@@ -104,7 +111,7 @@ void MainWindow::prevSlide()
     }
 }
 
-void MainWindow::firstSlide() 
+void MainWindow::firstSlide()
 {
     if (currentPage != 0) {
         currentPage = 0;
@@ -112,7 +119,7 @@ void MainWindow::firstSlide()
     }
 }
 
-void MainWindow::lastSlide() 
+void MainWindow::lastSlide()
 {
     if (currentPage != pdf->pageCount() - 1) {
         currentPage = pdf->pageCount() - 1;
@@ -120,17 +127,17 @@ void MainWindow::lastSlide()
     }
 }
 
-void MainWindow::toggleLaser() 
+void MainWindow::toggleLaser()
 {
     laserCheckBox->setChecked(!laserCheckBox->isChecked());
 }
 
-void MainWindow::toggleZoom() 
+void MainWindow::toggleZoom()
 {
     zoomCheckBox->setChecked(!zoomCheckBox->isChecked());
 }
 
-void MainWindow::quitApp() 
+void MainWindow::quitApp()
 {
     close();
 }
@@ -144,7 +151,7 @@ void MainWindow::setupUi()
     QHBoxLayout *topBar = new QHBoxLayout();
     timeLabel = new QLabel("00:00:00");
     elapsedLabel = new QLabel("00:00:00");
-    
+
     // Laser Pointer Toggle
     laserCheckBox = new QCheckBox("Laser Pointer (L)");
     connect(laserCheckBox, &QCheckBox::toggled, this, [this](bool checked){
@@ -172,28 +179,28 @@ void MainWindow::setupUi()
     connect(zoomCheckBox, &QCheckBox::toggled, this, [this](bool checked){
         presentationDisplay->enableZoom(checked);
     });
-    
+
     QSlider *sizeSlider = new QSlider(Qt::Horizontal);
     sizeSlider->setRange(250, 1500);
     sizeSlider->setValue(250); // Default
     sizeSlider->setFixedWidth(150);
-    
+
     QSlider *magSlider = new QSlider(Qt::Horizontal);
     magSlider->setRange(2, 5);
     magSlider->setValue(2); // Default
     magSlider->setFixedWidth(100);
-    
+
     zoomSizeSlider = sizeSlider;
     zoomMagSlider = magSlider;
-    
+
     QLabel *sizeLabel = new QLabel("Size: 250px");
     QLabel *magLabel = new QLabel("Mag: 2x");
-    
+
     connect(sizeSlider, &QSlider::valueChanged, this, [this, sizeLabel](int val){
         sizeLabel->setText(QString("Size: %1px").arg(val));
         presentationDisplay->setZoomSettings(zoomMagSlider->value(), val);
     });
-    
+
     connect(magSlider, &QSlider::valueChanged, this, [this, magLabel](int val){
         magLabel->setText(QString("Mag: %1x").arg(val));
         presentationDisplay->setZoomSettings(val, zoomSizeSlider->value());
@@ -232,11 +239,11 @@ void MainWindow::setupUi()
     nextSlideView->setAlignment(Qt::AlignCenter);
     nextSlideView->setStyleSheet("background: #eeeeee; border: 1px dashed #aaa;");
     nextSlideView->setFixedHeight(200);
-    
+
     // Notes: Text or Image (Split View)
     notesView = new QTextEdit(this);
     notesView->setPlaceholderText("Notes for this slide...");
-    
+
     notesImageView = new QLabel("Notes View"); // For Beamer notes
     notesImageView->setAlignment(Qt::AlignCenter);
     notesImageView->setStyleSheet("background: white; border: 1px solid #ccc;");
@@ -247,7 +254,7 @@ void MainWindow::setupUi()
     rightLayout->addWidget(new QLabel("Notes:"));
     rightLayout->addWidget(notesView);
     rightLayout->addWidget(notesImageView);
-    
+
     // Help Text
     QLabel *helpLabel = new QLabel(
         "<b>Hotkeys:</b><br>"
@@ -260,12 +267,47 @@ void MainWindow::setupUi()
         "Q/Esc: Quit"
     );
     helpLabel->setStyleSheet("color: #666; margin-top: 10px;");
-    rightLayout->addWidget(helpLabel);
-    rightLayout->addStretch();
+    // rightLayout->addWidget(helpLabel); // Moved to be below splitter
+    // rightLayout->addStretch();
 
     // Assemble Splitters
     mainSplitter = new QSplitter(Qt::Horizontal);
-    
+    rightSplitter = new QSplitter(Qt::Vertical); // Declare vertical splitter
+
+    // Style Splitters
+    QString splitterStyle =
+        "QSplitter::handle { background-color: #dcdcdc; border: 1px solid #ccc; }"
+        "QSplitter::handle:horizontal { width: 6px; }"
+        "QSplitter::handle:vertical { height: 6px; }";
+    mainSplitter->setStyleSheet(splitterStyle);
+    rightSplitter->setStyleSheet(splitterStyle);
+
+    connect(mainSplitter, &QSplitter::splitterMoved, this, [this](int, int){ resizeTimer->start(50); });
+    connect(rightSplitter, &QSplitter::splitterMoved, this, [this](int, int){ resizeTimer->start(50); });
+
+    // Group 1: Next Slide
+    QWidget *nextSlideGroup = new QWidget();
+    QVBoxLayout *nextLayout = new QVBoxLayout(nextSlideGroup);
+    nextLayout->setContentsMargins(0,0,0,0);
+    nextLayout->addWidget(new QLabel("Next Slide:"));
+    nextLayout->addWidget(nextSlideView);
+
+    // Group 2: Notes
+    QWidget *notesGroup = new QWidget();
+    QVBoxLayout *notesLayout = new QVBoxLayout(notesGroup);
+    notesLayout->setContentsMargins(0,0,0,0);
+    notesLayout->addWidget(new QLabel("Notes:"));
+    notesLayout->addWidget(notesView);
+    notesLayout->addWidget(notesImageView);
+
+    rightSplitter->addWidget(nextSlideGroup);
+    rightSplitter->addWidget(notesGroup);
+    rightSplitter->setStretchFactor(1, 1);
+
+    // Add splitter and help text to right container
+    rightLayout->addWidget(rightSplitter);
+    rightLayout->addWidget(helpLabel);
+
     // Left: TOC with Title
     QWidget *leftContainer = new QWidget();
     QVBoxLayout *leftLayout = new QVBoxLayout(leftContainer);
@@ -275,7 +317,7 @@ void MainWindow::setupUi()
     leftLayout->addWidget(chaptersLabel);
     leftLayout->addWidget(tocView);
     mainSplitter->addWidget(leftContainer);
-    
+
     // Center: Slide with Title
     QWidget *centerContainer = new QWidget();
     QVBoxLayout *centerLayout = new QVBoxLayout(centerContainer);
@@ -287,38 +329,42 @@ void MainWindow::setupUi()
     mainSplitter->addWidget(centerContainer);
 
     mainSplitter->addWidget(rightContainer);
-    
+
     // Initial sizes
-    mainSplitter->setStretchFactor(1, 4); // Give priority to current slide
-    mainSplitter->setStretchFactor(2, 1);
+    // tocView->setFixedWidth(200); // FIXED: Removed fixed width constraint
+    tocView->setHeaderHidden(true);
+
+    mainSplitter->setStretchFactor(0, 0); // TOC: Minimal initial stretch but not fixed
+    mainSplitter->setStretchFactor(1, 4); // Slide: Main focus
+    mainSplitter->setStretchFactor(2, 1); // Right Panel
 
     mainLayout->addWidget(mainSplitter);
-    
+
     // Controls Layout (Bottom)
     QVBoxLayout *controlsLayout = new QVBoxLayout();
     controlsLayout->addLayout(topBar);
     controlsLayout->addLayout(zoomBar);
-    
+
     // Screen Management Controls
     QHBoxLayout *screenLayout = new QHBoxLayout();
-    
+
     switchScreenButton = new QPushButton("Switch Screens (S)");
     connect(switchScreenButton, &QPushButton::clicked, this, &MainWindow::switchScreens);
     switchScreenButton->hide(); // Hidden by default
-    
+
     screenSelector = new ScreenSelectorWidget(this);
     connect(screenSelector, &ScreenSelectorWidget::audienceScreenChanged, this, &MainWindow::onAudienceScreenSelected);
     screenSelector->hide(); // Hidden by default
-    
+
     screenLayout->addWidget(switchScreenButton);
     screenLayout->addWidget(screenSelector);
     screenLayout->addStretch();
-    
+
     controlsLayout->addLayout(screenLayout);
     mainLayout->addLayout(controlsLayout);
 
     setCentralWidget(centralWidget);
-    
+
     setWindowTitle("Presenter Console");
     resize(1200, 800);
 }
@@ -326,7 +372,7 @@ void MainWindow::setupUi()
 void MainWindow::detectScreens()
 {
     updateScreenControls();
-    
+
     // Connect to signal for future changes
     connect(qApp, &QGuiApplication::screenAdded, this, &MainWindow::onScreenCountChanged);
     connect(qApp, &QGuiApplication::screenRemoved, this, &MainWindow::onScreenCountChanged);
@@ -352,14 +398,14 @@ void MainWindow::onScreenCountChanged()
 void MainWindow::updateScreenControls()
 {
     int count = QGuiApplication::screens().count();
-    
+
     // Update Console Position in Selector
     if (windowHandle()) {
         QList<QScreen*> screens = QGuiApplication::screens();
         int idx = screens.indexOf(windowHandle()->screen());
         screenSelector->setConsoleScreen(idx);
     }
-    
+
     if (count <= 1) {
         switchScreenButton->hide();
         screenSelector->hide();
@@ -380,10 +426,10 @@ void MainWindow::switchScreens()
     // Find current screen of presentation window
     QScreen *current = presentationDisplay->screen();
     int idx = screens.indexOf(current);
-    
+
     // Swap Audience
     int nextIdx = (idx == 0) ? 1 : 0;
-    
+
     // Collision check handled in onAudienceScreenSelected
     onAudienceScreenSelected(nextIdx);
 }
@@ -392,22 +438,22 @@ void MainWindow::onAudienceScreenSelected(int index)
 {
     QList<QScreen*> screens = QGuiApplication::screens();
     if (index >= 0 && index < screens.size()) {
-        
+
         // Check Collision with Console Window
         if (windowHandle() && screens.count() >= 2) {
             QScreen *consoleScreen = windowHandle()->screen();
             int consoleIdx = screens.indexOf(consoleScreen);
-            
+
             if (index == consoleIdx) {
                 // Collision! Swap Console to the *other* available screen.
                 // If it was previously at 'oldAudienceIdx', go there.
                 // Or just find the first non-colliding screen.
-                
+
                 int targetConsoleIdx = -1;
                 // Try to swap with where Audience WAS?
                 QScreen *oldAudienceScreen = presentationDisplay->screen();
                 int oldAudienceIdx = screens.indexOf(oldAudienceScreen);
-                
+
                 if (oldAudienceIdx != index && oldAudienceIdx != -1) {
                     targetConsoleIdx = oldAudienceIdx;
                 } else {
@@ -419,36 +465,36 @@ void MainWindow::onAudienceScreenSelected(int index)
                          }
                      }
                 }
-                
+
                 if (targetConsoleIdx != -1) {
                     // Move Console
                     QScreen *targetConsoleInfo = screens[targetConsoleIdx];
                     windowHandle()->setScreen(targetConsoleInfo);
-                    
+
                     // Move window physically
                     QRect geo = targetConsoleInfo->availableGeometry();
                     // Center it or maximize? Inherit state?
                     // Let's just move it to center for safety, user can maximize
                     setGeometry(geo.x() + 50, geo.y() + 50, 1200, 800);
-                    
+
                     // Update selector
                     screenSelector->setConsoleScreen(targetConsoleIdx);
                 }
             }
         }
-        
+
         QScreen *target = screens[index];
         QRect geo = target->geometry();
-        
+
         // Ensure handle is created if not already
         if (!presentationDisplay->isVisible()) presentationDisplay->show();
-        
+
         if (presentationDisplay->windowHandle()) {
             presentationDisplay->windowHandle()->setScreen(target);
         }
         presentationDisplay->setGeometry(geo);
         presentationDisplay->showFullScreen();
-        
+
         // Update selector state if visible
         screenSelector->setAudienceScreen(index);
     }
@@ -462,20 +508,20 @@ void MainWindow::syncTocWithPage(int page)
     int bestPage = -1;
 
     // Helper lambda for recursive search
-    std::function<void(const QModelIndex&)> search = 
+    std::function<void(const QModelIndex&)> search =
         [&](const QModelIndex &parent) {
         int rowCount = bookmarkModel->rowCount(parent);
         for (int i = 0; i < rowCount; ++i) {
             QModelIndex idx = bookmarkModel->index(i, 0, parent);
             int pageNum = idx.data((int)QPdfBookmarkModel::Role::Page).toInt();
-            
+
             if (pageNum <= page) {
                 if (pageNum > bestPage) {
                     bestPage = pageNum;
                     bestMatch = idx;
                 }
             }
-            
+
             if (bookmarkModel->hasChildren(idx)) {
                 search(idx);
             }
@@ -513,23 +559,23 @@ void MainWindow::updateViews()
         }
 
         QSizeF pageSize = pdf->pagePointSize(currentPage);
-        
+
         QSize renderSize(100, 100); // Default safe size
         if (!pageSize.isEmpty()) {
             if (useSplitView) {
                 // In split view, the slide is the left half.
                 QSizeF slideSize(pageSize.width() / 2.0, pageSize.height());
-                
+
                 // Scale factor to fit the half-slide into targetSize
                 QSize scaledHalf = slideSize.scaled(targetSize, Qt::KeepAspectRatio).toSize();
                 qreal scale = (slideSize.width() > 0) ? ((qreal)scaledHalf.width() / slideSize.width()) : 1.0;
-                
+
                 renderSize = QSize(pageSize.width() * scale, pageSize.height() * scale);
             } else {
                 renderSize = pageSize.scaled(targetSize, Qt::KeepAspectRatio).toSize();
             }
         }
-        
+
         // Ensure valid render size
         if (renderSize.isEmpty()) renderSize = QSize(100, 100);
 
@@ -568,10 +614,10 @@ void MainWindow::updateViews()
 
     // 3. Render Next Slide Preview
     if (currentPage + 1 < pdf->pageCount()) {
-        QSize nextRenderSize = pdf->pagePointSize(currentPage + 1).toSize(); 
+        QSize nextRenderSize = pdf->pagePointSize(currentPage + 1).toSize();
         QImage nextFull = pdf->render(currentPage + 1, nextRenderSize);
         QImage nextPreview;
-        
+
         if (useSplitView) {
             nextPreview = nextFull.copy(0, 0, nextFull.width() / 2, nextFull.height());
         } else {
@@ -580,11 +626,11 @@ void MainWindow::updateViews()
         nextSlideView->setPixmap(QPixmap::fromImage(nextPreview).scaled(nextSlideView->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
     } else {
         nextSlideView->setText("End of Presentation");
-        nextSlideView->clear(); 
+        nextSlideView->clear();
     }
     // 4. Update Notes (Mockup)
     notesView->setText(QString("Notes for Slide %1").arg(currentPage + 1));
-    
+
     syncTocWithPage(currentPage);
 }
 
@@ -617,13 +663,69 @@ void MainWindow::toggleSplitView()
 {
     useSplitView = !useSplitView;
     updateViews();
-    QMessageBox::information(this, "Mode Changed", 
-                             useSplitView ? "Split Mode Enabled (Left=Slide, Right=Notes)" 
+    QMessageBox::information(this, "Mode Changed",
+                             useSplitView ? "Split Mode Enabled (Left=Slide, Right=Notes)"
                                           : "Standard Mode Enabled");
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    QMainWindow::resizeEvent(event);
+    resizeTimer->start(50);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    saveSettings();
     presentationDisplay->close();
     QMainWindow::closeEvent(event);
+}
+
+void MainWindow::loadSettings()
+{
+    QSettings settings(".my_presenter_config.ini", QSettings::IniFormat);
+
+    restoreGeometry(settings.value("window/geometry").toByteArray());
+
+    if (settings.contains("ui/mainSplitter")) {
+        mainSplitter->restoreState(settings.value("ui/mainSplitter").toByteArray());
+    }
+
+    if (settings.contains("ui/rightSplitter")) {
+        rightSplitter->restoreState(settings.value("ui/rightSplitter").toByteArray());
+    }
+
+    if (settings.contains("features/laser")) {
+        showLaser = settings.value("features/laser").toBool();
+        laserCheckBox->setChecked(showLaser);
+    }
+
+    if (settings.contains("features/zoom")) {
+        bool zoomEnabled = settings.value("features/zoom").toBool();
+        zoomCheckBox->setChecked(zoomEnabled);
+    }
+
+    if (settings.contains("features/zoomSize")) {
+        int size = settings.value("features/zoomSize").toInt();
+        zoomSizeSlider->setValue(size);
+    }
+
+    if (settings.contains("features/zoomMag")) {
+        int mag = settings.value("features/zoomMag").toInt();
+        zoomMagSlider->setValue(mag);
+    }
+}
+
+void MainWindow::saveSettings()
+{
+    QSettings settings(".my_presenter_config.ini", QSettings::IniFormat);
+
+    settings.setValue("window/geometry", saveGeometry());
+    settings.setValue("ui/mainSplitter", mainSplitter->saveState());
+    settings.setValue("ui/rightSplitter", rightSplitter->saveState());
+
+    settings.setValue("features/laser", showLaser);
+    settings.setValue("features/zoom", zoomCheckBox->isChecked());
+    settings.setValue("features/zoomSize", zoomSizeSlider->value());
+    settings.setValue("features/zoomMag", zoomMagSlider->value());
 }

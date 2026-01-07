@@ -28,6 +28,7 @@ public:
 
 protected:
     void closeEvent(QCloseEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private slots:
     void onBookmarkActivated(const QModelIndex &index);
@@ -56,6 +57,8 @@ private:
     void syncTocWithPage(int page);
     void setupShortcuts(QWidget *target);
     void updateScreenControls();
+    void loadSettings();
+    void saveSettings();
 
     // Data
     QPdfDocument *pdf;
@@ -68,6 +71,7 @@ private:
     QTimer *clockTimer;
     QTime startTime;
     bool timerRunning;
+    QTimer *resizeTimer;
 
     // Screen Management
     QPushButton *switchScreenButton;
