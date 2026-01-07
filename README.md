@@ -76,7 +76,8 @@ Or run the executable binary:
 | **Right Arrow** / **Down** / **Space** | Next Slide |
 | **Left Arrow** / **Up** / **Backspace** | Previous Slide |
 | **Home** / **End** | Jump to First / Last Slide |
-| **L** | Toggle Laser Pointer (60px Red Dot) |
+| **L** | **Switch to Laser Pointer** (Disables Zoom) |
+| **N** | **Switch to Normal Cursor** (Disables Tools) |
 | **Z** | Toggle **Zoom Pointer** (Magnifier) |
 | **S** | Toggle **Split View** (Beamer Mode) |
 | **Q** / **Esc** | Exit Application |

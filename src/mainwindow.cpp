@@ -83,7 +83,9 @@ void MainWindow::setupShortcuts(QWidget *target)
     new QShortcut(QKeySequence(Qt::Key_End), target, this, &MainWindow::lastSlide);
 
     // Tools
-    new QShortcut(QKeySequence(Qt::Key_L), target, this, &MainWindow::toggleLaser);
+    // Tools
+    new QShortcut(QKeySequence(Qt::Key_L), target, this, &MainWindow::activateLaser);
+    new QShortcut(QKeySequence(Qt::Key_N), target, this, &MainWindow::resetCursor);
     QShortcut *zoomShortcut = new QShortcut(QKeySequence(Qt::Key_Z), target);
     connect(zoomShortcut, &QShortcut::activated, this, &MainWindow::toggleZoom);
 
@@ -137,6 +139,28 @@ void MainWindow::lastSlide()
 void MainWindow::toggleLaser()
 {
     laserCheckBox->setChecked(!laserCheckBox->isChecked());
+    laserCheckBox->setChecked(!laserCheckBox->isChecked());
+}
+
+void MainWindow::activateLaser()
+{
+    // Force switch to Laser:
+    // 1. Disable Zoom if active
+    if (zoomCheckBox->isChecked()) {
+        zoomCheckBox->setChecked(false);
+    }
+    // 2. Enable Laser if not active
+    if (!laserCheckBox->isChecked()) {
+        laserCheckBox->setChecked(true);
+    }
+}
+
+void MainWindow::resetCursor()
+{
+    // Switch to Normal:
+    // Disable both
+    if (zoomCheckBox->isChecked()) zoomCheckBox->setChecked(false);
+    if (laserCheckBox->isChecked()) laserCheckBox->setChecked(false);
 }
 
 void MainWindow::toggleZoom()
@@ -431,6 +455,12 @@ void MainWindow::setupUi()
     featuresGrid->addWidget(zMagVal, 6, 2);
 
     controlsRight->addLayout(featuresGrid);
+
+    // Help Text
+    QLabel *shortcutsHelpLabel = new QLabel("Shortcuts: L=Laser, N=Normal, Z=Zoom");
+    shortcutsHelpLabel->setStyleSheet("color: #555; font-size: 10px; font-style: italic; margin-top: 5px;");
+    shortcutsHelpLabel->setAlignment(Qt::AlignCenter);
+    controlsRight->addWidget(shortcutsHelpLabel);
 
     // -- Bottom: Buttons --
     QHBoxLayout *buttonRow = new QHBoxLayout();

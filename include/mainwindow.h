@@ -46,6 +46,8 @@ private slots:
     void firstSlide();
     void lastSlide();
     void toggleLaser();
+    void activateLaser(); // L: Switch to Laser (force Zoom off)
+    void resetCursor();   // N: Switch to Normal (Laser/Zoom off)
     void toggleZoom();
     void toggleTimer();
     void quitApp();
