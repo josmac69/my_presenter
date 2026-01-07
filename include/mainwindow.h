@@ -10,6 +10,7 @@
 #include <QSplitter>
 #include <QScreen>
 #include <QPushButton>
+#include <QDockWidget>
 #include "screenselectorwidget.h"
 #include <QShortcut>
 #include "presentationdisplay.h"
@@ -89,8 +90,12 @@ private:
     ScreenSelectorWidget *screenSelector;
 
     // UI Elements
-    QSplitter *mainSplitter;
-    QSplitter *rightSplitter;
+    // Docks
+    QDockWidget *tocDock;
+    QDockWidget *infoDock; // Next Slide + Notes
+    QDockWidget *timerDock;
+    QDockWidget *controlsDock;
+    QDockWidget *screenDock;
     
     QLabel *currentSlideView;
     QLabel *nextSlideView;

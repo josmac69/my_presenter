@@ -172,269 +172,211 @@ void MainWindow::quitApp()
 
 void MainWindow::setupUi()
 {
-    QWidget *centralWidget = new QWidget(this);
-    QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
+    // 1. Central Widget: Current Slide
+    QWidget *centralContainer = new QWidget(this);
+    QVBoxLayout *centralLayout = new QVBoxLayout(centralContainer);
+    centralLayout->setContentsMargins(5, 5, 5, 5);
+    
+    QLabel *currentSlideLabel = new QLabel("Current Slide");
+    currentSlideLabel->setStyleSheet("font-weight: bold; padding: 5px;");
+    currentSlideLabel->setAlignment(Qt::AlignCenter);
+    
+    currentSlideView = new QLabel("Current Slide");
+    currentSlideView->setAlignment(Qt::AlignCenter);
+    currentSlideView->setStyleSheet("background: #dddddd; border: 1px solid #999;");
+    currentSlideView->setMinimumSize(400, 300);
+    currentSlideView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
-    // Top Bar (Timers)
-    QHBoxLayout *topBar = new QHBoxLayout();
+    centralLayout->addWidget(currentSlideLabel);
+    centralLayout->addWidget(currentSlideView);
+    setCentralWidget(centralContainer);
+
+    // 2. Dock: Chapters (Left)
+    tocDock = new QDockWidget("Chapters", this);
+    tocDock->setObjectName("ChaptersDock");
+    tocDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    
+    tocView = new QTreeView(tocDock);
+    tocView->setModel(bookmarkModel);
+    tocView->setHeaderHidden(true);
+    connect(tocView, &QTreeView::activated, this, &MainWindow::onBookmarkActivated);
+    connect(tocView, &QTreeView::clicked, this, &MainWindow::onBookmarkActivated);
+    
+    tocDock->setWidget(tocView);
+    addDockWidget(Qt::LeftDockWidgetArea, tocDock);
+
+    // 3. Dock: Info (Next Slide + Notes) (Right)
+    infoDock = new QDockWidget("Info", this);
+    infoDock->setObjectName("InfoDock");
+    infoDock->setAllowedAreas(Qt::RightDockWidgetArea | Qt::LeftDockWidgetArea | Qt::BottomDockWidgetArea);
+
+    QWidget *infoContainer = new QWidget();
+    QVBoxLayout *infoLayout = new QVBoxLayout(infoContainer);
+    
+    nextSlideView = new QLabel("Next Slide");
+    nextSlideView->setAlignment(Qt::AlignCenter);
+    nextSlideView->setStyleSheet("background: #eeeeee; border: 1px dashed #aaa;");
+    nextSlideView->setMinimumHeight(150);
+    
+    notesView = new QTextEdit();
+    notesView->setPlaceholderText("Notes for this slide...");
+    
+    notesImageView = new QLabel("Notes View");
+    notesImageView->setAlignment(Qt::AlignCenter);
+    notesImageView->setStyleSheet("background: white; border: 1px solid #ccc;");
+    notesImageView->hide();
+
+    // Help Text
+    QLabel *helpLabel = new QLabel(
+        "<b>Hotkeys:</b> Right/Space: Next | Left/Back: Prev | Home/End: First/Last<br>"
+        "S: Switch Screens | Ctrl+S: Split Mode | L: Laser | Z: Zoom | P: Timer | Q: Quit"
+    );
+    helpLabel->setStyleSheet("color: #666; margin-top: 5px; font-size: 10px;");
+    helpLabel->setWordWrap(true);
+
+    infoLayout->addWidget(new QLabel("Next Slide:"));
+    infoLayout->addWidget(nextSlideView);
+    infoLayout->addWidget(new QLabel("Notes:"));
+    infoLayout->addWidget(notesView);
+    infoLayout->addWidget(notesImageView);
+    infoLayout->addWidget(helpLabel);
+    
+    infoDock->setWidget(infoContainer);
+    addDockWidget(Qt::RightDockWidgetArea, infoDock);
+
+    // 4. Dock: Timers (Bottom)
+    timerDock = new QDockWidget("Timers", this);
+    timerDock->setObjectName("TimerDock");
+    timerDock->setAllowedAreas(Qt::BottomDockWidgetArea | Qt::TopDockWidgetArea);
+    
+    QWidget *timerContainer = new QWidget();
+    QHBoxLayout *timerLayout = new QHBoxLayout(timerContainer);
+    
+    QFont timerFont = font();
+    timerFont.setPointSize(14);
+    timerFont.setBold(true);
+    
     timeLabel = new QLabel("00:00:00");
+    timeLabel->setFont(timerFont);
     elapsedLabel = new QLabel("00:00:00");
+    elapsedLabel->setFont(timerFont);
 
-    // Laser Pointer Toggle
-    laserCheckBox = new QCheckBox("Laser Pointer (L)");
+    timerLayout->addWidget(new QLabel("Time:"));
+    timerLayout->addWidget(timeLabel);
+    timerLayout->addSpacing(30);
+    timerLayout->addWidget(new QLabel("Elapsed:"));
+    timerLayout->addWidget(elapsedLabel);
+    timerLayout->addStretch();
+    
+    timerDock->setWidget(timerContainer);
+    addDockWidget(Qt::BottomDockWidgetArea, timerDock);
+
+    // 5. Dock: Controls (Buttons & Checkboxes) (Bottom)
+    controlsDock = new QDockWidget("Controls", this);
+    controlsDock->setObjectName("ControlsDock");
+    controlsDock->setAllowedAreas(Qt::BottomDockWidgetArea | Qt::TopDockWidgetArea | Qt::RightDockWidgetArea);
+    
+    QWidget *controlsContainer = new QWidget();
+    QHBoxLayout *controlsLayout = new QHBoxLayout(controlsContainer); // Wrap horizontal
+    
+    // Timer Button
+    timerButton = new QPushButton("Start timer");
+    connect(timerButton, &QPushButton::clicked, this, &MainWindow::toggleTimer);
+    
+    // Laser
+    laserCheckBox = new QCheckBox("Laser (L)");
     connect(laserCheckBox, &QCheckBox::toggled, this, [this](bool checked){
         showLaser = checked;
         presentationDisplay->enableLaserPointer(checked);
     });
-
-    QFont timerFont = font();
-    timerFont.setPointSize(14);
-    timerFont.setBold(true);
-    timeLabel->setFont(timerFont);
-    elapsedLabel->setFont(timerFont);
     
-    timerButton = new QPushButton("Start timer");
-    connect(timerButton, &QPushButton::clicked, this, &MainWindow::toggleTimer);
-
-    topBar->addWidget(new QLabel("Time:"));
-    topBar->addWidget(timeLabel);
-    topBar->addSpacing(20);
-    topBar->addWidget(laserCheckBox);
-    topBar->addSpacing(20);
-    topBar->addWidget(timerButton);
-    topBar->addStretch();
-    topBar->addWidget(new QLabel("Elapsed:"));
-    topBar->addWidget(elapsedLabel);
-
-    // Zoom Controls Bar
-    QHBoxLayout *zoomBar = new QHBoxLayout();
+    // Zoom
     zoomCheckBox = new QCheckBox("Zoom (Z)");
     connect(zoomCheckBox, &QCheckBox::toggled, this, [this](bool checked){
         presentationDisplay->enableZoom(checked);
     });
 
+    // Window Modes
+    consoleFullscreenCheck = new QCheckBox("Console Fullscreen");
+    connect(consoleFullscreenCheck, &QCheckBox::toggled, this, &MainWindow::toggleConsoleFullscreen);
+    audienceFullscreenCheck = new QCheckBox("Audience Fullscreen");
+    connect(audienceFullscreenCheck, &QCheckBox::toggled, this, &MainWindow::toggleAudienceFullscreen);
+    aspectRatioCheck = new QCheckBox("Lock Aspect Ratio");
+    connect(aspectRatioCheck, &QCheckBox::toggled, this, &MainWindow::toggleAspectRatioLock);
+
+    // Layout
+    QVBoxLayout *col1 = new QVBoxLayout(); // Buttons
+    col1->addWidget(timerButton);
+    col1->addWidget(laserCheckBox);
+    col1->addWidget(zoomCheckBox);
+    
+    QVBoxLayout *col2 = new QVBoxLayout(); // Window Modes
+    col2->addWidget(consoleFullscreenCheck);
+    col2->addWidget(audienceFullscreenCheck);
+    col2->addWidget(aspectRatioCheck);
+    
+    // Zoom Slider Group
+    QVBoxLayout *col3 = new QVBoxLayout();
+    QLabel *sizeLabel = new QLabel("Size: 250px");
     QSlider *sizeSlider = new QSlider(Qt::Horizontal);
-    sizeSlider->setRange(250, 1500);
-    sizeSlider->setValue(250); // Default
-    sizeSlider->setFixedWidth(150);
-
+    sizeSlider->setRange(250, 1500); sizeSlider->setValue(250); sizeSlider->setFixedWidth(120);
+    
+    QLabel *magLabel = new QLabel("Mag: 2x");
     QSlider *magSlider = new QSlider(Qt::Horizontal);
-    magSlider->setRange(2, 5);
-    magSlider->setValue(2); // Default
-    magSlider->setFixedWidth(100);
-
+    magSlider->setRange(2, 5); magSlider->setValue(2); magSlider->setFixedWidth(100);
+    
     zoomSizeSlider = sizeSlider;
     zoomMagSlider = magSlider;
-
-    QLabel *sizeLabel = new QLabel("Size: 250px");
-    QLabel *magLabel = new QLabel("Mag: 2x");
-
+    
     connect(sizeSlider, &QSlider::valueChanged, this, [this, sizeLabel](int val){
         sizeLabel->setText(QString("Size: %1px").arg(val));
         presentationDisplay->setZoomSettings(zoomMagSlider->value(), val);
     });
-
     connect(magSlider, &QSlider::valueChanged, this, [this, magLabel](int val){
         magLabel->setText(QString("Mag: %1x").arg(val));
         presentationDisplay->setZoomSettings(val, zoomSizeSlider->value());
     });
 
-    zoomBar->addWidget(zoomCheckBox);
-    zoomBar->addSpacing(15);
-    zoomBar->addWidget(new QLabel("Dia:"));
-    zoomBar->addWidget(sizeSlider);
-    zoomBar->addWidget(sizeLabel);
-    zoomBar->addSpacing(15);
-    zoomBar->addWidget(new QLabel("Zoom:"));
-    zoomBar->addWidget(magSlider);
-    zoomBar->addWidget(magLabel);
-    zoomBar->addStretch();
+    QHBoxLayout *row1 = new QHBoxLayout(); row1->addWidget(new QLabel("Dia:")); row1->addWidget(sizeSlider); row1->addWidget(sizeLabel);
+    QHBoxLayout *row2 = new QHBoxLayout(); row2->addWidget(new QLabel("Mag:")); row2->addWidget(magSlider); row2->addWidget(magLabel);
+    col3->addLayout(row1);
+    col3->addLayout(row2);
 
-    // TOC View (Left)
-    tocView = new QTreeView(this);
-    tocView->setModel(bookmarkModel);
-    tocView->setHeaderHidden(true);
-    tocView->setFixedWidth(200);
-    connect(tocView, &QTreeView::activated, this, &MainWindow::onBookmarkActivated);
-    connect(tocView, &QTreeView::clicked, this, &MainWindow::onBookmarkActivated);
+    controlsLayout->addLayout(col1);
+    controlsLayout->addSpacing(20);
+    controlsLayout->addLayout(col2);
+    controlsLayout->addSpacing(20);
+    controlsLayout->addLayout(col3);
+    controlsLayout->addStretch();
+    
+    controlsDock->setWidget(controlsContainer);
+    addDockWidget(Qt::BottomDockWidgetArea, controlsDock);
 
-    // Center Area (Current Slide)
-    currentSlideView = new QLabel("Current Slide");
-    currentSlideView->setAlignment(Qt::AlignCenter);
-    currentSlideView->setStyleSheet("background: #dddddd; border: 1px solid #999;");
-    currentSlideView->setMinimumSize(400, 300);
-
-    // Right Area (Preview + Notes)
-    QWidget *rightContainer = new QWidget(this);
-    QVBoxLayout *rightLayout = new QVBoxLayout(rightContainer);
-
-    nextSlideView = new QLabel("Next Slide");
-    nextSlideView->setAlignment(Qt::AlignCenter);
-    nextSlideView->setStyleSheet("background: #eeeeee; border: 1px dashed #aaa;");
-    nextSlideView->setFixedHeight(200);
-
-    // Notes: Text or Image (Split View)
-    notesView = new QTextEdit(this);
-    notesView->setPlaceholderText("Notes for this slide...");
-
-    notesImageView = new QLabel("Notes View"); // For Beamer notes
-    notesImageView->setAlignment(Qt::AlignCenter);
-    notesImageView->setStyleSheet("background: white; border: 1px solid #ccc;");
-    notesImageView->hide(); // Hidden by default
-
-    rightLayout->addWidget(new QLabel("Next Slide:"));
-    rightLayout->addWidget(nextSlideView);
-    rightLayout->addWidget(new QLabel("Notes:"));
-    rightLayout->addWidget(notesView);
-    rightLayout->addWidget(notesImageView);
-
-    // Help Text
-    QLabel *helpLabel = new QLabel(
-        "<b>Hotkeys:</b><br>"
-        "Right/Space: Next Slide<br>"
-        "Left/Back: Prev Slide<br>"
-        "Home/End: First/Last Slide<br>"
-        "S: Switch Screens<br>"
-        "Ctrl+S: Toggle Split Mode<br>"
-        "L: Laser | Z: Zoom<br>"
-        "Q/Esc: Quit"
-    );
-    helpLabel->setStyleSheet("color: #666; margin-top: 10px;");
-    // rightLayout->addWidget(helpLabel); // Moved to be below splitter
-    // rightLayout->addStretch();
-
-    // Assemble Splitters
-    mainSplitter = new QSplitter(Qt::Horizontal);
-    rightSplitter = new QSplitter(Qt::Vertical); // Declare vertical splitter
-
-    // Style Splitters
-    QString splitterStyle =
-        "QSplitter::handle { background-color: #dcdcdc; border: 1px solid #ccc; }"
-        "QSplitter::handle:horizontal { width: 6px; }"
-        "QSplitter::handle:vertical { height: 6px; }";
-    mainSplitter->setStyleSheet(splitterStyle);
-    rightSplitter->setStyleSheet(splitterStyle);
-
-    connect(mainSplitter, &QSplitter::splitterMoved, this, [this](int, int){ resizeTimer->start(50); });
-    connect(rightSplitter, &QSplitter::splitterMoved, this, [this](int, int){ resizeTimer->start(50); });
-
-    // Group 1: Next Slide
-    QWidget *nextSlideGroup = new QWidget();
-    QVBoxLayout *nextLayout = new QVBoxLayout(nextSlideGroup);
-    nextLayout->setContentsMargins(0,0,0,0);
-    nextLayout->addWidget(new QLabel("Next Slide:"));
-    nextLayout->addWidget(nextSlideView);
-
-    // Group 2: Notes
-    QWidget *notesGroup = new QWidget();
-    QVBoxLayout *notesLayout = new QVBoxLayout(notesGroup);
-    notesLayout->setContentsMargins(0,0,0,0);
-    notesLayout->addWidget(new QLabel("Notes:"));
-    notesLayout->addWidget(notesView);
-    notesLayout->addWidget(notesImageView);
-
-    rightSplitter->addWidget(nextSlideGroup);
-    rightSplitter->addWidget(notesGroup);
-    rightSplitter->setStretchFactor(1, 1);
-
-    // Add splitter and help text to right container
-    rightLayout->addWidget(rightSplitter);
-    rightLayout->addWidget(helpLabel);
-
-    // Left: TOC with Title
-    QWidget *leftContainer = new QWidget();
-    QVBoxLayout *leftLayout = new QVBoxLayout(leftContainer);
-    leftLayout->setContentsMargins(0, 0, 0, 0);
-    QLabel *chaptersLabel = new QLabel("Chapters");
-    chaptersLabel->setStyleSheet("font-weight: bold; padding: 5px;");
-    leftLayout->addWidget(chaptersLabel);
-    leftLayout->addWidget(tocView);
-    mainSplitter->addWidget(leftContainer);
-
-    // Center: Slide with Title
-    QWidget *centerContainer = new QWidget();
-    QVBoxLayout *centerLayout = new QVBoxLayout(centerContainer);
-    centerLayout->setContentsMargins(0, 0, 0, 0);
-    QLabel *currentSlideLabel = new QLabel("Current Slide");
-    currentSlideLabel->setStyleSheet("font-weight: bold; padding: 5px;");
-    centerLayout->addWidget(currentSlideLabel);
-    centerLayout->addWidget(currentSlideView);
-
-    // Create a central vertical splitter for Current Slide vs Next/Notes
-    QSplitter *centerSplitter = new QSplitter(Qt::Vertical);
-    centerSplitter->setStyleSheet(splitterStyle);
-    centerSplitter->addWidget(centerContainer);
-    centerSplitter->addWidget(rightContainer);
-    centerSplitter->setStretchFactor(0, 3); // Current Slide gets more space
-    centerSplitter->setStretchFactor(1, 1);
-
-    mainSplitter->addWidget(leftContainer);
-    mainSplitter->addWidget(centerSplitter);
-
-    connect(centerSplitter, &QSplitter::splitterMoved, this, [this](int, int){ resizeTimer->start(50); });
-
-    // Initial sizes
-    // tocView->setFixedWidth(200); // FIXED: Removed fixed width constraint
-    tocView->setHeaderHidden(true);
-
-    mainSplitter->setStretchFactor(0, 0); // TOC: Minimal initial stretch
-    mainSplitter->setStretchFactor(1, 1); // Content Area
-
-    mainLayout->addWidget(mainSplitter);
-
-    // Controls Layout (Bottom)
-    QVBoxLayout *controlsLayout = new QVBoxLayout();
-    controlsLayout->addLayout(topBar);
-    controlsLayout->addLayout(zoomBar);
-
-    // Screen Management Controls
-    QHBoxLayout *screenLayout = new QHBoxLayout();
-
+    // 6. Dock: Monitor Manager (Separate)
+    screenDock = new QDockWidget("Monitor Manager", this);
+    screenDock->setObjectName("ScreenDock");
+    
+    QWidget *screenContainer = new QWidget();
+    QVBoxLayout *scrLayout = new QVBoxLayout(screenContainer);
+    
+    QLabel *screenHelpLabel = new QLabel("Drag 'A' to presentation screen. 'C' is Console.");
+    screenHelpLabel->setStyleSheet("color: #555; font-size: 10px;");
+    
     switchScreenButton = new QPushButton("Switch Screens (S)");
     connect(switchScreenButton, &QPushButton::clicked, this, &MainWindow::switchScreens);
-    switchScreenButton->hide(); // Hidden by default
-
+    
     screenSelector = new ScreenSelectorWidget(this);
     connect(screenSelector, &ScreenSelectorWidget::audienceScreenChanged, this, &MainWindow::onAudienceScreenSelected);
     connect(screenSelector, &ScreenSelectorWidget::consoleScreenChanged, this, &MainWindow::onConsoleScreenSelected);
-    screenSelector->hide(); // Hidden by default
+    // screenSelector->hide(); // Let it be visible in dock
 
-    QLabel *screenHelpLabel = new QLabel("<b>Monitor Manager:</b> Drag the 'A' (Audience) icon to move the presentation screen. 'C' shows your Console location.");
-    screenHelpLabel->setWordWrap(true);
-    screenHelpLabel->setStyleSheet("QLabel { color: #555; margin-bottom: 5px; }");
-    
-    screenLayout->addWidget(screenHelpLabel);
-    screenLayout->addWidget(switchScreenButton);
-    screenLayout->addWidget(screenSelector);
-    screenLayout->addStretch();
+    scrLayout->addWidget(screenHelpLabel);
+    scrLayout->addWidget(switchScreenButton);
+    scrLayout->addWidget(screenSelector);
+    scrLayout->addStretch();
 
-    screenLayout->addWidget(screenSelector);
-    screenLayout->addStretch();
-    
-    controlsLayout->addLayout(screenLayout);
-
-    // Window Mode Controls
-    QHBoxLayout *windowModeLayout = new QHBoxLayout();
-    
-    consoleFullscreenCheck = new QCheckBox("Console Fullscreen");
-    connect(consoleFullscreenCheck, &QCheckBox::toggled, this, &MainWindow::toggleConsoleFullscreen);
-    
-    audienceFullscreenCheck = new QCheckBox("Audience Fullscreen");
-    connect(audienceFullscreenCheck, &QCheckBox::toggled, this, &MainWindow::toggleAudienceFullscreen);
-    
-    aspectRatioCheck = new QCheckBox("Lock Aspect Ratio");
-    connect(aspectRatioCheck, &QCheckBox::toggled, this, &MainWindow::toggleAspectRatioLock);
-    
-    windowModeLayout->addWidget(consoleFullscreenCheck);
-    windowModeLayout->addWidget(audienceFullscreenCheck);
-    windowModeLayout->addWidget(aspectRatioCheck);
-    windowModeLayout->addStretch();
-    
-    controlsLayout->addLayout(windowModeLayout);
-
-    mainLayout->addLayout(controlsLayout);
-
-    setCentralWidget(centralWidget);
+    screenDock->setWidget(screenContainer);
+    addDockWidget(Qt::LeftDockWidgetArea, screenDock);
 
     setWindowTitle("Presenter Console");
     resize(1200, 800);
@@ -822,14 +764,7 @@ void MainWindow::loadSettings()
     QSettings settings(".my_presenter_config.ini", QSettings::IniFormat);
 
     restoreGeometry(settings.value("window/geometry").toByteArray());
-
-    if (settings.contains("ui/mainSplitter")) {
-        mainSplitter->restoreState(settings.value("ui/mainSplitter").toByteArray());
-    }
-
-    if (settings.contains("ui/rightSplitter")) {
-        rightSplitter->restoreState(settings.value("ui/rightSplitter").toByteArray());
-    }
+    restoreState(settings.value("window/state").toByteArray());
 
     if (settings.contains("features/laser")) {
         showLaser = settings.value("features/laser").toBool();
@@ -873,8 +808,7 @@ void MainWindow::saveSettings()
     QSettings settings(".my_presenter_config.ini", QSettings::IniFormat);
 
     settings.setValue("window/geometry", saveGeometry());
-    settings.setValue("ui/mainSplitter", mainSplitter->saveState());
-    settings.setValue("ui/rightSplitter", rightSplitter->saveState());
+    settings.setValue("window/state", saveState());
 
     settings.setValue("features/laser", showLaser);
     settings.setValue("features/zoom", zoomCheckBox->isChecked());
