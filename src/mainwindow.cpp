@@ -359,17 +359,26 @@ void MainWindow::setupUi()
     currentSlideLabel->setStyleSheet("font-weight: bold; padding: 5px;");
     centerLayout->addWidget(currentSlideLabel);
     centerLayout->addWidget(currentSlideView);
-    mainSplitter->addWidget(centerContainer);
 
-    mainSplitter->addWidget(rightContainer);
+    // Create a central vertical splitter for Current Slide vs Next/Notes
+    QSplitter *centerSplitter = new QSplitter(Qt::Vertical);
+    centerSplitter->setStyleSheet(splitterStyle);
+    centerSplitter->addWidget(centerContainer);
+    centerSplitter->addWidget(rightContainer);
+    centerSplitter->setStretchFactor(0, 3); // Current Slide gets more space
+    centerSplitter->setStretchFactor(1, 1);
+
+    mainSplitter->addWidget(leftContainer);
+    mainSplitter->addWidget(centerSplitter);
+
+    connect(centerSplitter, &QSplitter::splitterMoved, this, [this](int, int){ resizeTimer->start(50); });
 
     // Initial sizes
     // tocView->setFixedWidth(200); // FIXED: Removed fixed width constraint
     tocView->setHeaderHidden(true);
 
-    mainSplitter->setStretchFactor(0, 0); // TOC: Minimal initial stretch but not fixed
-    mainSplitter->setStretchFactor(1, 4); // Slide: Main focus
-    mainSplitter->setStretchFactor(2, 1); // Right Panel
+    mainSplitter->setStretchFactor(0, 0); // TOC: Minimal initial stretch
+    mainSplitter->setStretchFactor(1, 1); // Content Area
 
     mainLayout->addWidget(mainSplitter);
 
