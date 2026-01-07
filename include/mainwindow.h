@@ -17,6 +17,8 @@
 #include <QCheckBox>
 #include <QSlider>
 #include <QColorDialog>
+#include <QFontDialog>
+#include <QScrollArea>
 
 #include <QTime>
 
@@ -102,11 +104,13 @@ private:
     QDockWidget *controlsDock;
     QDockWidget *screenDock;
     QDockWidget *currentSlideDock;
+    QDockWidget *nextSlideDock; // NEW
+    QDockWidget *notesDock;     // NEW
     
     QLabel *currentSlideView;
     QLabel *nextSlideView;
-    QTextEdit *notesView;      // For text notes
-    QLabel *notesImageView;    // For visual Beamer notes (split right half)
+    QTextEdit *notesView;
+    QLabel *notesImageView;
     QTreeView *tocView;
     
     QLabel *timeLabel;
@@ -117,6 +121,8 @@ private:
     QSlider *zoomMagSlider;
     
     // Font Controls
+    QPushButton *clockFontButton; // NEW
+    QPushButton *timerFontButton; // NEW
     QSlider *clockFontSlider;
     QSlider *timerFontSlider;
     QPushButton *clockColorButton;
