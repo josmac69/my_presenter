@@ -7,7 +7,7 @@
 
 PresentationDisplay::PresentationDisplay(QWidget *parent)
     : QWidget(parent), pdf(nullptr), currentPage(0), splitView(false),
-      laserActive(false), zoomActive(false), zoomFactor(2.0f), zoomDiameter(250),
+      laserActive(false), laserDiameter(60), laserOpacity(128), zoomActive(false), zoomFactor(2.0f), zoomDiameter(250),
       lockedAspectRatio(false), isResizing(false)
 {
     setMouseTracking(true);
@@ -88,9 +88,26 @@ void PresentationDisplay::setZoomSettings(float factor, int diameter)
     if (zoomActive) update();
 }
 
+void PresentationDisplay::setLaserSettings(int diameter, int opacity)
+{
+    laserDiameter = diameter;
+    laserOpacity = opacity;
+    
+    // Regenerate cursor
+    laserCursor = createLaserCursor();
+    
+    // If active and not Zoomed, apply immediately
+    if (laserActive && !zoomActive) {
+        setCursor(laserCursor);
+    }
+}
+
 QCursor PresentationDisplay::createLaserCursor()
 {
-    int size = 60; // 60px wide (2x bigger)
+    int size = laserDiameter; 
+    // Ensure size is valid
+    if (size < 10) size = 10;
+    
     QPixmap pixmap(size, size);
     pixmap.fill(Qt::transparent);
 
@@ -99,10 +116,10 @@ QCursor PresentationDisplay::createLaserCursor()
     
     // Radial gradient for "blurry borders"
     QRadialGradient gradient(size/2, size/2, size/2);
-    // Center opacity ~50% (128/255)
-    gradient.setColorAt(0.0, QColor(255, 0, 0, 128)); 
-    // Midpoint opacity ~40% (100/255)
-    gradient.setColorAt(0.5, QColor(255, 0, 0, 100)); 
+    // Center opacity user-defined
+    gradient.setColorAt(0.0, QColor(255, 0, 0, laserOpacity)); 
+    // Midpoint opacity slightly less
+    gradient.setColorAt(0.5, QColor(255, 0, 0, static_cast<int>(laserOpacity * 0.8))); 
     // Edge transparent
     gradient.setColorAt(1.0, QColor(255, 0, 0, 0));   
     

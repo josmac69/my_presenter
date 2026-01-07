@@ -7,10 +7,8 @@
 #include <QTreeView>
 #include <QPdfBookmarkModel>
 #include <QTextEdit>
-#include <QSplitter>
 #include <QScreen>
 #include <QPushButton>
-#include <QDockWidget>
 #include "screenselectorwidget.h"
 #include <QShortcut>
 #include "presentationdisplay.h"
@@ -96,16 +94,9 @@ private:
     ScreenSelectorWidget *screenSelector;
 
     // UI Elements
-    // Docks
-    QDockWidget *tocDock;
-    QDockWidget *infoDock; // Next Slide + Notes
-    QDockWidget *controlCenterDock; // NEW: Consolidates Clock, Timer, Controls
-    // Removed individual docks: clockDock, elapsedDock, controlsDock
-    QDockWidget *screenDock;
-    QDockWidget *currentSlideDock;
-    QDockWidget *nextSlideDock; // NEW
-    QDockWidget *notesDock;     // NEW
-    
+    // Removed Docks for fixed layout
+    // QDockWidget *tocDock; ...
+
     QLabel *currentSlideView;
     QLabel *nextSlideView;
     QTextEdit *notesView;
@@ -118,10 +109,12 @@ private:
     QCheckBox *zoomCheckBox;
     QSlider *zoomSizeSlider;
     QSlider *zoomMagSlider;
+    QSlider *laserSizeSlider;
+    QSlider *laserOpacitySlider;
     
     // Font Controls
-    QPushButton *clockFontButton; // NEW
-    QPushButton *timerFontButton; // NEW
+    QPushButton *clockFontButton;
+    QPushButton *timerFontButton;
     QSlider *clockFontSlider;
     QSlider *timerFontSlider;
     QPushButton *clockColorButton;
@@ -132,9 +125,8 @@ private:
     QCheckBox *audienceFullscreenCheck;
     QCheckBox *aspectRatioCheck;
     QPushButton *closeButton;
-    QPushButton *resetLayoutButton;
 
-    QByteArray defaultState;
+    // QByteArray defaultState; // Removed for fixed layout
     
     // Audience Window
     PresentationDisplay *presentationDisplay;
