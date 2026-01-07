@@ -214,8 +214,10 @@ void MainWindow::setupUi()
     currentSlideView = new QLabel("Current Slide");
     currentSlideView->setAlignment(Qt::AlignCenter);
     currentSlideView->setStyleSheet("background: #dddddd; border: 1px solid #999;");
+    currentSlideView->setStyleSheet("background: #dddddd; border: 1px solid #999;");
     // Force aggressive expansion to prevent side docks (Notes) from creeping in
-    currentSlideView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding); 
+    // UPDATE: User wants free resize + no creep. Ignored policy breaks the loop.
+    currentSlideView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored); 
     currentSlideView->setMinimumSize(50, 50);
     currentSlideView->installEventFilter(this); // Catch resize events
 
@@ -283,7 +285,9 @@ void MainWindow::setupUi()
     nextSlideView->setStyleSheet("background: #eeeeee; border: 1px dashed #aaa;");
     nextSlideView->setMinimumHeight(150);
     // Fix infinite expansion loop: Ignore content size (pixmap) for layout requests
-    nextSlideView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Expanding);
+    // UPDATE: User reported 'creep' with Expanding. Reverting to Preferred (or Ignored) to stabilize.
+    // Ignored prevents the widget from pushing the dock based on pixmap size.
+    nextSlideView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     
     nextSlideLayout->addWidget(nextSlideView);
     nextSlideDock->setWidget(nextSlideContainer);
@@ -300,7 +304,9 @@ void MainWindow::setupUi()
     notesView = new QTextEdit();
     notesView->setPlaceholderText("Notes for this slide...");
     // Constrain expansion: Ignored horizontal prevents aggressive expansion/creep loops
-    notesView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Expanding);
+    // UPDATE: User reported 'creep'. Preferred vs Ignored.
+    // Ignored prevents feedback loop.
+    notesView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     
     notesImageView = new QLabel("Notes View");
     notesImageView->setAlignment(Qt::AlignCenter);
@@ -533,10 +539,11 @@ void MainWindow::setupUi()
     rightLayout->addWidget(closeButton);
     rightLayout->addStretch();
 
+    controlsLayout->addStretch(); // Push from left
     controlsLayout->addLayout(leftLayout);
     controlsLayout->addSpacing(20);
     controlsLayout->addLayout(rightLayout);
-    controlsLayout->addStretch();
+    controlsLayout->addStretch(); // Push from right (already existed, keeping it)
     // Removed duplicate lines that were here (addLayout right, addStretch)
     
     // REMOVED: controlsLayout->setSizeConstraint(QLayout::SetMinimumSize); 
