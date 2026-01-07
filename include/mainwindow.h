@@ -31,11 +31,14 @@ public:
 protected:
     void closeEvent(QCloseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+    bool eventFilter(QObject *obj, QEvent *event) override;
 
 private slots:
     void onBookmarkActivated(const QModelIndex &index);
     void updateTimers();
     void toggleSplitView();
+    void resetLayout();
 
     // Hotkey Actions
     void nextSlide();
@@ -98,6 +101,7 @@ private:
     QDockWidget *elapsedDock;
     QDockWidget *controlsDock;
     QDockWidget *screenDock;
+    QDockWidget *currentSlideDock;
     
     QLabel *currentSlideView;
     QLabel *nextSlideView;
@@ -122,6 +126,10 @@ private:
     QCheckBox *consoleFullscreenCheck;
     QCheckBox *audienceFullscreenCheck;
     QCheckBox *aspectRatioCheck;
+    QPushButton *closeButton;
+    QPushButton *resetLayoutButton;
+
+    QByteArray defaultState;
     
     // Audience Window
     PresentationDisplay *presentationDisplay;

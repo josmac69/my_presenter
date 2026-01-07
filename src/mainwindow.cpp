@@ -29,6 +29,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(resizeTimer, &QTimer::timeout, this, &MainWindow::updateViews);
 
     setupUi();
+    defaultState = saveState(); // Capture default layout immediately after setup
 
     // Setup shortcuts for both windows
     setupShortcuts(this);
@@ -170,31 +171,60 @@ void MainWindow::quitApp()
     close();
 }
 
+void MainWindow::resetLayout()
+{
+    if (!defaultState.isEmpty()) {
+        restoreState(defaultState);
+    }
+}
+
 void MainWindow::setupUi()
 {
-    // 1. Central Widget: Current Slide
-    QWidget *centralContainer = new QWidget(this);
-    QVBoxLayout *centralLayout = new QVBoxLayout(centralContainer);
-    centralLayout->setContentsMargins(5, 5, 5, 5);
+    // Enable Dock Nesting and Corner configuration
+    setDockNestingEnabled(true);
+    setCorner(Qt::TopLeftCorner, Qt::LeftDockWidgetArea);
+    setCorner(Qt::TopRightCorner, Qt::RightDockWidgetArea);
+    setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
+    setCorner(Qt::BottomRightCorner, Qt::RightDockWidgetArea);
+
+    // 1. Central Widget: Empty (to allow full dock flexibility)
+    QWidget *dummyCentral = new QWidget(this);
+    setCentralWidget(dummyCentral);
+    dummyCentral->hide(); // Hide so docks can take all space
     
-    QLabel *currentSlideLabel = new QLabel("Current Slide");
-    currentSlideLabel->setStyleSheet("font-weight: bold; padding: 5px;");
-    currentSlideLabel->setAlignment(Qt::AlignCenter);
+    // 1b. Dock: Current Slide (Was Central)
+    currentSlideDock = new QDockWidget("Current Slide", this);
+    currentSlideDock->setObjectName("CurrentSlideDock");
+    currentSlideDock->setAllowedAreas(Qt::AllDockWidgetAreas);
     
-    currentSlideView = new QLabel("Current Slide");
+    QWidget *currentSlideContainer = new QWidget();
+    QVBoxLayout *currentSlideLayout = new QVBoxLayout(currentSlideContainer);
+    currentSlideLayout->setContentsMargins(0, 0, 0, 0);
+
+    // Reuse existing pointers for logic constraint
+    // But we need to instantiate them if they were part of old central
+    
+    QLabel *currentSlideTitle = new QLabel("Current Slide");
+    currentSlideTitle->setStyleSheet("font-weight: bold; padding: 5px;");
+    currentSlideTitle->setAlignment(Qt::AlignCenter);
+    
+    currentSlideView = new QLabel("Current Slide View");
     currentSlideView->setAlignment(Qt::AlignCenter);
     currentSlideView->setStyleSheet("background: #dddddd; border: 1px solid #999;");
-    currentSlideView->setMinimumSize(400, 300);
+    currentSlideView->setMinimumSize(50, 50);
     currentSlideView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    currentSlideView->installEventFilter(this); // Catch resize events
 
-    centralLayout->addWidget(currentSlideLabel);
-    centralLayout->addWidget(currentSlideView);
-    setCentralWidget(centralContainer);
+    currentSlideLayout->addWidget(currentSlideTitle);
+    currentSlideLayout->addWidget(currentSlideView);
+    
+    currentSlideDock->setWidget(currentSlideContainer);
+    addDockWidget(Qt::TopDockWidgetArea, currentSlideDock); // Default position
 
     // 2. Dock: Chapters (Left)
     tocDock = new QDockWidget("Chapters", this);
     tocDock->setObjectName("ChaptersDock");
-    tocDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    tocDock->setAllowedAreas(Qt::AllDockWidgetAreas);
     
     tocView = new QTreeView(tocDock);
     tocView->setModel(bookmarkModel);
@@ -217,9 +247,14 @@ void MainWindow::setupUi()
     nextSlideView->setAlignment(Qt::AlignCenter);
     nextSlideView->setStyleSheet("background: #eeeeee; border: 1px dashed #aaa;");
     nextSlideView->setMinimumHeight(150);
+    // Fix infinite expansion loop: Ignore content size (pixmap) for layout requests
+    nextSlideView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Expanding);
     
     notesView = new QTextEdit();
     notesView->setPlaceholderText("Notes for this slide...");
+    // Constrain expansion: Preferred usually respects sizeHint but doesn't aggressively push
+    // Expanding means "take as much as possible".
+    notesView->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     
     notesImageView = new QLabel("Notes View");
     notesImageView->setAlignment(Qt::AlignCenter);
@@ -407,6 +442,17 @@ void MainWindow::setupUi()
     QHBoxLayout *row2 = new QHBoxLayout(); row2->addWidget(new QLabel("Magnification:")); row2->addWidget(magSlider); row2->addWidget(magLabel);
     col3->addLayout(row1);
     col3->addLayout(row2);
+    
+    // Close Button (Added to col3 or a new col4, let's put it at the end of col3 for now or separate)
+    closeButton = new QPushButton("Close Presenter");
+    closeButton->setStyleSheet("background-color: #ffcccc; padding: 5px;"); 
+    connect(closeButton, &QPushButton::clicked, this, &MainWindow::close);
+    col3->addWidget(closeButton);
+    
+    // Reset Layout Button
+    resetLayoutButton = new QPushButton("Reset Layout");
+    connect(resetLayoutButton, &QPushButton::clicked, this, &MainWindow::resetLayout);
+    col3->addWidget(resetLayoutButton);
 
     controlsLayout->addLayout(col1);
     controlsLayout->addSpacing(20);
@@ -812,6 +858,18 @@ void MainWindow::toggleAspectRatioLock(bool enabled)
     }
 }
 
+bool MainWindow::eventFilter(QObject *obj, QEvent *event)
+{
+    if (obj == currentSlideView && event->type() == QEvent::Resize) {
+        // Trigger generic update when the view itself is resized
+        // Use a small delay/debounce if needed, or just update directly if lightweight
+        if (!resizeTimer->isActive()) {
+            resizeTimer->start(50); // Debounce slightly
+        }
+    }
+    return QMainWindow::eventFilter(obj, event);
+}
+
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
     QMainWindow::resizeEvent(event);
@@ -823,6 +881,20 @@ void MainWindow::closeEvent(QCloseEvent *event)
     saveSettings();
     presentationDisplay->close();
     QMainWindow::closeEvent(event);
+}
+
+void MainWindow::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_Escape) {
+        event->ignore(); // Do nothing on Escape
+        return;
+    }
+    if (event->key() == Qt::Key_Q) {
+        quitApp();
+        event->accept();
+        return;
+    }
+    QMainWindow::keyPressEvent(event);
 }
 
 void MainWindow::loadSettings()
