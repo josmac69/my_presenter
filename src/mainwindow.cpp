@@ -10,7 +10,7 @@
 #include <QSettings>
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), currentPage(0), showLaser(false), useSplitView(false), timerRunning(false)
+    : QMainWindow(parent), currentPage(0), showLaser(false), useSplitView(false), timerRunning(false), timerHasStarted(false)
 {
     pdf = new QPdfDocument(this);
     bookmarkModel = new QPdfBookmarkModel(this);
@@ -23,6 +23,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(clockTimer, &QTimer::timeout, this, &MainWindow::updateTimers);
     clockTimer->start(1000);
 
+    // Timer starts manually via button/hotkey or first slide change
     resizeTimer = new QTimer(this);
     resizeTimer->setSingleShot(true);
     connect(resizeTimer, &QTimer::timeout, this, &MainWindow::updateViews);
@@ -44,8 +45,6 @@ MainWindow::MainWindow(QWidget *parent)
         QString fileName = QFileDialog::getOpenFileName(this, "Open PDF", "", "PDF Files (*.pdf)");
         if (!fileName.isEmpty()) {
             loadPdf(fileName);
-            startTime = QTime::currentTime();
-            timerRunning = true;
         }
     });
 
@@ -83,7 +82,11 @@ void MainWindow::setupShortcuts(QWidget *target)
 
     // Tools
     new QShortcut(QKeySequence(Qt::Key_L), target, this, &MainWindow::toggleLaser);
-    new QShortcut(QKeySequence(Qt::Key_Z), target, this, &MainWindow::toggleZoom);
+    QShortcut *zoomShortcut = new QShortcut(QKeySequence(Qt::Key_Z), target);
+    connect(zoomShortcut, &QShortcut::activated, this, &MainWindow::toggleZoom);
+    
+    QShortcut *timerShortcut = new QShortcut(QKeySequence(Qt::Key_P), target);
+    connect(timerShortcut, &QShortcut::activated, this, &MainWindow::toggleTimer);
     new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_S), target, this, &MainWindow::toggleSplitView);
 
     // Screen Management
@@ -97,6 +100,8 @@ void MainWindow::setupShortcuts(QWidget *target)
 // Slots for Actions
 void MainWindow::nextSlide()
 {
+    if (!timerRunning) toggleTimer();
+    
     if (currentPage < pdf->pageCount() - 1) {
         currentPage++;
         updateViews();
@@ -137,6 +142,29 @@ void MainWindow::toggleZoom()
     zoomCheckBox->setChecked(!zoomCheckBox->isChecked());
 }
 
+void MainWindow::toggleTimer()
+{
+    if (timerRunning) {
+        // Pause
+        pauseStartTime = QTime::currentTime();
+        timerRunning = false;
+        timerButton->setText("Start timer");
+    } else {
+        // Start or Resume
+        if (!timerHasStarted) {
+            startTime = QTime::currentTime();
+            timerHasStarted = true;
+        } else {
+            // Resume: Shift start time forward by the paused duration
+            int pauseDuration = pauseStartTime.secsTo(QTime::currentTime());
+            startTime = startTime.addSecs(pauseDuration);
+        }
+        timerRunning = true;
+         timerButton->setText("Pause timer");
+    }
+    updateTimers(); // Force immediate update
+}
+
 void MainWindow::quitApp()
 {
     close();
@@ -164,11 +192,16 @@ void MainWindow::setupUi()
     timerFont.setBold(true);
     timeLabel->setFont(timerFont);
     elapsedLabel->setFont(timerFont);
+    
+    timerButton = new QPushButton("Start timer");
+    connect(timerButton, &QPushButton::clicked, this, &MainWindow::toggleTimer);
 
     topBar->addWidget(new QLabel("Time:"));
     topBar->addWidget(timeLabel);
     topBar->addSpacing(20);
     topBar->addWidget(laserCheckBox);
+    topBar->addSpacing(20);
+    topBar->addWidget(timerButton);
     topBar->addStretch();
     topBar->addWidget(new QLabel("Elapsed:"));
     topBar->addWidget(elapsedLabel);

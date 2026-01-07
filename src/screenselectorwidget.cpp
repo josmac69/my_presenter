@@ -188,7 +188,6 @@ void ScreenSelectorWidget::mousePressEvent(QMouseEvent *event)
     QPointF pos = event->position();
     
     // Hit test icons first
-    bool hitIcon = false;
     
     // Check Audience Icons
     for (int i = 0; i < audienceIconRects.size(); ++i) {
@@ -196,7 +195,6 @@ void ScreenSelectorWidget::mousePressEvent(QMouseEvent *event)
             currentDragTarget = DragTarget::Audience;
             previewIndex = i;
             isDragging = true;
-            hitIcon = true;
             update();
             return;
         }
@@ -208,7 +206,6 @@ void ScreenSelectorWidget::mousePressEvent(QMouseEvent *event)
             currentDragTarget = DragTarget::Console;
             previewIndex = i;
             isDragging = true;
-            hitIcon = true;
             update();
             return;
         }

@@ -42,6 +42,7 @@ private slots:
     void lastSlide();
     void toggleLaser();
     void toggleZoom();
+    void toggleTimer();
     void quitApp();
     
     // Screen Management
@@ -77,7 +78,11 @@ private:
     QTimer *clockTimer;
     QTimer *resizeTimer;
     QTime startTime;
+    QTime pauseStartTime; // Track when pause started
     bool timerRunning;
+    bool timerHasStarted; // Track if timer was ever started
+    
+    QPushButton *timerButton;
 
     // Screen Management
     QPushButton *switchScreenButton;
