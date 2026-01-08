@@ -1328,6 +1328,17 @@ void MainWindow::loadSettings()
         laserColorCombo->setCurrentText(color);
     }
 
+    // Drawing Settings
+    if (settings.contains("features/drawingColor")) {
+        drawingColorCombo->setCurrentText(settings.value("features/drawingColor").toString());
+    }
+    if (settings.contains("features/drawingStyle")) {
+        drawingStyleCombo->setCurrentText(settings.value("features/drawingStyle").toString());
+    }
+    if (settings.contains("features/drawingThickness")) {
+        drawingThicknessSpin->setValue(settings.value("features/drawingThickness").toInt());
+    }
+
     // Load Fonts (Family/Style)
     if (settings.contains("font/clockFont")) {
          QFont f;
@@ -1390,6 +1401,11 @@ void MainWindow::saveSettings()
     settings.setValue("features/laserSize", laserSizeSlider->value());
     settings.setValue("features/laserOpacity", laserOpacitySlider->value());
     settings.setValue("features/laserColor", laserColorCombo->currentText());
+
+    // Drawing Settings
+    settings.setValue("features/drawingColor", drawingColorCombo->currentText());
+    settings.setValue("features/drawingStyle", drawingStyleCombo->currentText());
+    settings.setValue("features/drawingThickness", drawingThicknessSpin->value());
 
     settings.setValue("font/clockSize", clockFontSlider->value());
     settings.setValue("font/timerSize", timerFontSlider->value());
