@@ -122,9 +122,6 @@ void MainWindow::setupShortcuts()
 
     // Drawing (D)
     addToolKeys(Qt::Key_D, SLOT(activateDrawing()));
-
-    // Drawing (D)
-    addToolKeys(Qt::Key_D, SLOT(activateDrawing()));
 }
 
 // Slots for Actions
