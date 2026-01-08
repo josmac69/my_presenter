@@ -484,7 +484,7 @@ void MainWindow::setupUi()
 
     drawingLayout->addWidget(new QLabel("Thick:"), 3, 0);
     drawingThicknessSpin = new QSpinBox();
-    drawingThicknessSpin->setRange(1, 20);
+    drawingThicknessSpin->setRange(1, 40);
     drawingThicknessSpin->setValue(5);
     drawingThicknessSpin->setStyleSheet("QSpinBox { background: white; color: black; }");
     drawingLayout->addWidget(drawingThicknessSpin, 3, 1);
