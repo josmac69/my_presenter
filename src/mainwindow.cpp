@@ -114,6 +114,11 @@ void MainWindow::setupShortcuts()
     addToolKeys(Qt::Key_Plus, SLOT(increasePointerSize()));
     addToolKeys(Qt::Key_Equal, SLOT(increasePointerSize())); // Oftentimes + is Shift+=
     addToolKeys(Qt::Key_Minus, SLOT(decreasePointerSize()));
+
+    // Laser Color Shortcuts
+    addToolKeys(Qt::Key_R, SLOT(setLaserRed()));
+    addToolKeys(Qt::Key_G, SLOT(setLaserGreen()));
+    addToolKeys(Qt::Key_B, SLOT(setLaserBlue()));
 }
 
 // Slots for Actions
@@ -1051,6 +1056,11 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         case Qt::Key_Plus: 
         case Qt::Key_Equal: increasePointerSize(); return true;
         case Qt::Key_Minus: decreasePointerSize(); return true;
+
+        // Laser Colors
+        case Qt::Key_R: setLaserRed(); return true;
+        case Qt::Key_G: setLaserGreen(); return true;
+        case Qt::Key_B: setLaserBlue(); return true;
         }
     }
     return QMainWindow::eventFilter(obj, event);
@@ -1090,6 +1100,27 @@ void MainWindow::decreasePointerSize()
     } else if (zoomCheckBox->isChecked()) {
         int val = zoomSizeSlider->value();
         zoomSizeSlider->setValue(val - 50);
+    }
+}
+
+void MainWindow::setLaserRed()
+{
+    if (laserCheckBox->isChecked()) {
+        laserColorCombo->setCurrentText("Red");
+    }
+}
+
+void MainWindow::setLaserGreen()
+{
+    if (laserCheckBox->isChecked()) {
+        laserColorCombo->setCurrentText("Green");
+    }
+}
+
+void MainWindow::setLaserBlue()
+{
+    if (laserCheckBox->isChecked()) {
+        laserColorCombo->setCurrentText("Blue");
     }
 }
 

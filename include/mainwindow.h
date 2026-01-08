@@ -63,6 +63,11 @@ private slots:
     void increasePointerSize();
     void decreasePointerSize();
 
+    // Laser Color Shortcuts
+    void setLaserRed();
+    void setLaserGreen();
+    void setLaserBlue();
+
     void toggleConsoleFullscreen(bool enabled); // Re-declared or just adding helper slots if needed
     void toggleAudienceFullscreen(bool enabled);
 
