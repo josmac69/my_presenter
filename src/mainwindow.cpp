@@ -17,9 +17,10 @@ MainWindow::MainWindow(QWidget *parent)
     pdf = new QPdfDocument(this);
     bookmarkModel = new QPdfBookmarkModel(this);
     bookmarkModel->setDocument(pdf);
-    presentationDisplay = new PresentationDisplay(nullptr); // Null parent = separate window
+    // PresentationDisplay setup
+    presentationDisplay = new PresentationDisplay(nullptr);
     presentationDisplay->setDocument(pdf);
-    // presentationDisplay->installEventFilter(this); // REMOVED: Capture keys from audience window
+    presentationDisplay->installEventFilter(this); // Capture keys from audience window
 
     clockTimer = new QTimer(this);
     connect(clockTimer, &QTimer::timeout, this, &MainWindow::updateTimers);
@@ -88,11 +89,8 @@ void MainWindow::setupShortcuts()
         new QShortcut(QKeySequence(key), this, slot, nullptr, Qt::ApplicationShortcut);
         new QShortcut(QKeySequence(key | Qt::ShiftModifier), this, slot, nullptr, Qt::ApplicationShortcut);
 
-        // Audience Window (Explicit WindowShortcut to ensure focus works)
-        if (presentationDisplay) {
-            new QShortcut(QKeySequence(key), presentationDisplay, slot, nullptr, Qt::WindowShortcut);
-            new QShortcut(QKeySequence(key | Qt::ShiftModifier), presentationDisplay, slot, nullptr, Qt::WindowShortcut);
-        }
+        // Audience Window shortcuts are now handled via eventFilter in MainWindow to ensure robustness
+        // (QShortcut with WindowShortcut proved unreliable for the standalone PresentationDisplay widget)
     };
 
     addToolKeys(Qt::Key_L, SLOT(activateLaser()));
@@ -1008,6 +1006,41 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         // Use a small delay/debounce if needed, or just update directly if lightweight
         if (!resizeTimer->isActive()) {
             resizeTimer->start(50); // Debounce slightly
+        }
+    }
+
+    if (obj == presentationDisplay && event->type() == QEvent::KeyPress) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent*>(event);
+        int key = keyEvent->key();
+        
+        switch (key) {
+        // Tools
+        case Qt::Key_L: activateLaser(); return true;
+        case Qt::Key_N: resetCursor(); return true;
+        case Qt::Key_Z: activateZoom(); return true;
+        
+        // Timer
+        case Qt::Key_T: 
+        case Qt::Key_P: toggleTimer(); return true;
+
+        // Screen Management
+        case Qt::Key_S: switchScreens(); return true;
+
+        // Navigation
+        case Qt::Key_Right: 
+        case Qt::Key_Down:
+        case Qt::Key_Space: nextSlide(); return true;
+        
+        case Qt::Key_Left:
+        case Qt::Key_Up:
+        case Qt::Key_Backspace: prevSlide(); return true;
+
+        case Qt::Key_Home: firstSlide(); return true;
+        case Qt::Key_End: lastSlide(); return true;
+
+        // System
+        case Qt::Key_Q: 
+        case Qt::Key_Escape: quitApp(); return true;
         }
     }
     return QMainWindow::eventFilter(obj, event);
