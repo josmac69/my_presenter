@@ -1,106 +1,101 @@
 # my_presenter
 
-A C++ PDF presentation tool built with Qt6, inspired by tools like **Pympress**. It features a dual-window "Presenter Console" designed for professional use with support for Beamer notes and presentation timing.
+A robust, C++ based dual-screen PDF presentation tool built with **Qt 6**. Designed for professionals, it emulates the functionality of tools like *Pympress* but with the performance and native look-and-feel of C++.
 
-## What's New
-- **Presentation Timers**: Added Wall Clock and Elapsed Presentation Time to the console.
-- **Beamer Notes Support**: Added logic to handle split-page PDFs (Left=Slide, Right=Notes). Toggle with `S`.
-- **Improved Console**: Layout updated to include timer bar and toggleable visual notes.
+It features a dedicated **Presenter Console** with wall-clock and elapsed timers, next-slide previews, and support for LaTeX Beamer notes (split-screen mode).
 
-## Features
+![Presenter Console](screenshots/console_features.png)
 
-- **Dual-Window Mode**:
-    - **Audience View**: Automatically opens on a Secondary Screen (if detected) or as a separate window. Shows only the slides in fullscreen.
-    - **Presenter Console**: Runs on the Primary Screen. Includes:
-        - **Current Slide**: Large view of what the audience sees.
-        - **Next Slide Preview**: Shows the upcoming slide.
-        - **Timers**:
-            - **Current Time**: Standard wall clock.
-            - **Elapsed Time**: Tracks duration since the presentation started.
-        - **Notes View**:
-            - Standard Mode: Text area for separate notes.
-            - **Beamer Mode**: Visual view of the right-half of the slide (for split LaTeX Beamer slides).
-        - **Table of Contents**: Navigate using PDF bookmarks (chapters).
-- **Control & Navigation**:
-    - Intuitive keyboard controls.
-    - Clickable TOC sidebar.
-    - Clickable TOC sidebar.
-- **Enhanced Laser Pointer** (Toggle with `L`):
-    - Switch colors with **R** (Red), **G** (Green), **B** (Blue).
-    - Resize pointer with **+** / **-**.
-    - Configurable **Size**, **Opacity**, and **Color** from the console.
-- **Zoom Pointer** (Toggle with `Z`):
-    - Magnifying glass effect.
-    - Resize with **+** / **-**.
-    - Configurable **Size** and **Magnification**.
+## Key Features
 
-## Screenshots
-
-| Presenter Console | Audience View (Laser) |
-| :---: | :---: |
-| ![Presenter Console](screenshots/console_features.png) | ![Audience View](screenshots/audience_laser.png) |
-
-## Prerequisites
-
-- **Qt 6**: Requires Qt 6 Core, Gui, Widgets, and Pdf modules.
-- **Build Tools**: `make`, `g++`, `qmake6`.
+- **Dual-Window Architecture**:
+    - **Audience View**: A distraction-free fullscreen window for the secondary display.
+    - **Presenter Console**: A control center for the primary display containing:
+        - Current Slide & Next Slide Preview.
+        - **Timers**: Wall Clock and Elapsed Presentation Time.
+        - **Notes View**: Supports standard text notes or visual "right-half" notes for Beamer split-slides.
+        - **Table of Contents**: Clickable chapters extracted from PDF bookmarks.
+- **Advanced Pointers**:
+    - **Laser Pointer**: High-visibility dot with configurable color (Red, Green, Blue, **White**) and opacity.
+    - **Zoom Pointer**: Magnifying glass effect for detailed diagrams.
+    - **Drawing Mode**: Annotate slides directly on screen.
+- **Screen Management**:
+    - Automatic detection of secondary monitors.
+    - **Intelligent Screen Swapping**: Easily switch which screen shows the audience view (`S` key).
+    - **Split View Toggle**: Switch between standard single-page slides and double-width (Slide+Note) layouts (`Ctrl+S`).
 
 ## Installation & Build
 
-### 1. Install Dependencies
-We provide a helper script for Debian-based systems (apt) and macOS (Homebrew) to check and install dependencies:
+### Prerequisites
+- **Operating System**: Linux (Debian/Ubuntu recommended) or macOS.
+- **Dependencies**: Qt 6 (Core, Gui, Widgets, Pdf, PdfWidgets), `make`, C++17 compiler (`g++` or `clang++`).
 
-```bash
-./install_dependencies.sh
-```
+### Quick Start (Linux & macOS)
 
-### 2. Build the Application
-```bash
-make
-```
+1. **Install Dependencies**:
+   We provide a script to automatically verify and install missing packages for apt-based Linux and Homebrew-based macOS systems.
+   ```bash
+   ./install_dependencies.sh
+   ```
 
-This will compile the application into a standard `bin` directory (updated project config).
+2. **Build**:
+   Compile the application.
+   ```bash
+   make
+   ```
+   *The binary will be created in the `bin/` directory.*
 
-## Usage
+3. **Run**:
+   ```bash
+   ./bin/app
+   ```
+   *On macOS, you can also open the bundle: `open build_macos/bin/app.app`*
 
-Run the application:
+## Usage Guide
 
-```bash
-./bin/app
-```
+Launch the application and open a PDF presentation. The application will attempt to place the Audience View on a secondary monitor if detected.
 
-*Note: For macOS, use `open build_macos/bin/app.app`.*
+### Control Reference
 
-### Controls
-
+#### Navigation
 | Key | Action |
 | :--- | :--- |
-| **Right** / **Down** / **Space** | Next Slide |
-| **Left** / **Up** / **Backspace** | Previous Slide |
-| **Home** / **End** | First / Last Slide |
+| **Right** / **Space** / **Down** | Next Slide |
+| **Left** / **Backspace** / **Up** | Previous Slide |
+| **Home** | First Slide |
+| **End** | Last Slide |
+| **Page Up** | Previous Slide |
+| **Page Down** | Next Slide |
+
+#### Pointers & Tools
+| Key | Action |
+| :--- | :--- |
 | **L** | Toggle **Laser Pointer** |
-| **Z** | Toggle **Zoom Pointer** |
-| **N** | Reset Cursor (Normal) |
-| **R** / **G** / **B** | Switch Laser Color (Red/Green/Blue) |
-| **+** / **-** | Increase / Decrease Pointer Size |
-| **S** | Toggle **Split View** (Beamer Mode) |
-| **T** / **P** | Toggle Presentation Timer |
-| **Q** / **Esc** | Exit Application |
+| **Z** | Toggle **Zoom (Magnify) Pointer** |
+| **D** | Toggle **Drawing Mode** |
+| **N** | **Normal Cursor** (Reset all tools) |
+| **+** / **=** | **Increase** Pointer/Stroke Size |
+| **-** | **Decrease** Pointer/Stroke Size |
+| **R** | Set Laser/Pen to **Red** |
+| **G** | Set Laser/Pen to **Green** |
+| **B** | Set Laser/Pen to **Blue** |
+| **W** | Set Laser/Pen to **White** |
 
-### Modes
-- **Standard Mode**: Assumes single-page slides. Notes are text-only.
-- **Split View (Beamer Mode) ('S')**: Assumes double-width slides (common in LaTeX Beamer with notes).
-    - **Left Half**: Projected to Audience.
-    - **Right Half**: Shown in Presenter Console as Notes.
-
-**Note**: To control the presentation, ensure the **Presenter Console** window has focus.
+#### View & App Controls
+| Key | Action |
+| :--- | :--- |
+| **S** | **Switch Screens** (Swap Console/Audience Monitor) |
+| **Ctrl + S** | Toggle **Split View** (Beamer Mode: Left=Slide, Right=Notes) |
+| **T** / **P** | Toggle Presentation Timer (Start/Stop) |
+| **Q** / **Esc** | Quit Application |
 
 ## Repository Structure
 
-- `src/`: Source code (`main.cpp`, `mainwindow.cpp`, `presentationdisplay.cpp`).
+- `src/`: Source code (`mainwindow.cpp`, etc.).
 - `include/`: Header files.
-- `bin/`: Compiled executable (`app`).
-- `screenshots/`: UI screenshots.
-- `slides/`: Dummy presentation PDFs and generation scripts.
-- `my_presenter.pro`: Qt project configuration.
-- `Makefile`: Build wrapper script.
+- `bin/`: Output directory for the executable.
+- `slides/`: Example dummy presentations.
+- `my_presenter.pro`: Qt 6 QMake project file.
+
+---
+*Created by [josmac69](https://github.com/josmac69).*
