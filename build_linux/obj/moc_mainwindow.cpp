@@ -27,7 +27,7 @@ QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 namespace {
 struct qt_meta_stringdata_MainWindow_t {
-    uint offsetsAndSizes[42];
+    uint offsetsAndSizes[52];
     char stringdata0[11];
     char stringdata1[20];
     char stringdata2[1];
@@ -49,6 +49,11 @@ struct qt_meta_stringdata_MainWindow_t {
     char stringdata18[21];
     char stringdata19[25];
     char stringdata20[24];
+    char stringdata21[20];
+    char stringdata22[20];
+    char stringdata23[24];
+    char stringdata24[8];
+    char stringdata25[25];
 };
 #define QT_MOC_LITERAL(ofs, len) \
     uint(sizeof(qt_meta_stringdata_MainWindow_t::offsetsAndSizes) + ofs), len 
@@ -74,7 +79,12 @@ Q_CONSTINIT static const qt_meta_stringdata_MainWindow_t qt_meta_stringdata_Main
         QT_MOC_LITERAL(191, 13),  // "switchScreens"
         QT_MOC_LITERAL(205, 20),  // "onScreenCountChanged"
         QT_MOC_LITERAL(226, 24),  // "onAudienceScreenSelected"
-        QT_MOC_LITERAL(251, 23)   // "onConsoleScreenSelected"
+        QT_MOC_LITERAL(251, 23),  // "onConsoleScreenSelected"
+        QT_MOC_LITERAL(275, 19),  // "increasePointerSize"
+        QT_MOC_LITERAL(295, 19),  // "decreasePointerSize"
+        QT_MOC_LITERAL(315, 23),  // "toggleConsoleFullscreen"
+        QT_MOC_LITERAL(339, 7),  // "enabled"
+        QT_MOC_LITERAL(347, 24)   // "toggleAudienceFullscreen"
     },
     "MainWindow",
     "onBookmarkActivated",
@@ -96,7 +106,12 @@ Q_CONSTINIT static const qt_meta_stringdata_MainWindow_t qt_meta_stringdata_Main
     "switchScreens",
     "onScreenCountChanged",
     "onAudienceScreenSelected",
-    "onConsoleScreenSelected"
+    "onConsoleScreenSelected",
+    "increasePointerSize",
+    "decreasePointerSize",
+    "toggleConsoleFullscreen",
+    "enabled",
+    "toggleAudienceFullscreen"
 };
 #undef QT_MOC_LITERAL
 } // unnamed namespace
@@ -107,7 +122,7 @@ Q_CONSTINIT static const uint qt_meta_data_MainWindow[] = {
       10,       // revision
        0,       // classname
        0,    0, // classinfo
-      17,   14, // methods
+      21,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -115,23 +130,27 @@ Q_CONSTINIT static const uint qt_meta_data_MainWindow[] = {
        0,       // signalCount
 
  // slots: name, argc, parameters, tag, flags, initial metatype offsets
-       1,    1,  116,    2, 0x08,    1 /* Private */,
-       5,    0,  119,    2, 0x08,    3 /* Private */,
-       6,    0,  120,    2, 0x08,    4 /* Private */,
-       7,    0,  121,    2, 0x08,    5 /* Private */,
-       8,    0,  122,    2, 0x08,    6 /* Private */,
-       9,    0,  123,    2, 0x08,    7 /* Private */,
-      10,    0,  124,    2, 0x08,    8 /* Private */,
-      11,    0,  125,    2, 0x08,    9 /* Private */,
-      12,    0,  126,    2, 0x08,   10 /* Private */,
-      13,    0,  127,    2, 0x08,   11 /* Private */,
-      14,    0,  128,    2, 0x08,   12 /* Private */,
-      15,    0,  129,    2, 0x08,   13 /* Private */,
-      16,    0,  130,    2, 0x08,   14 /* Private */,
-      17,    0,  131,    2, 0x08,   15 /* Private */,
-      18,    0,  132,    2, 0x08,   16 /* Private */,
-      19,    1,  133,    2, 0x08,   17 /* Private */,
-      20,    1,  136,    2, 0x08,   19 /* Private */,
+       1,    1,  140,    2, 0x08,    1 /* Private */,
+       5,    0,  143,    2, 0x08,    3 /* Private */,
+       6,    0,  144,    2, 0x08,    4 /* Private */,
+       7,    0,  145,    2, 0x08,    5 /* Private */,
+       8,    0,  146,    2, 0x08,    6 /* Private */,
+       9,    0,  147,    2, 0x08,    7 /* Private */,
+      10,    0,  148,    2, 0x08,    8 /* Private */,
+      11,    0,  149,    2, 0x08,    9 /* Private */,
+      12,    0,  150,    2, 0x08,   10 /* Private */,
+      13,    0,  151,    2, 0x08,   11 /* Private */,
+      14,    0,  152,    2, 0x08,   12 /* Private */,
+      15,    0,  153,    2, 0x08,   13 /* Private */,
+      16,    0,  154,    2, 0x08,   14 /* Private */,
+      17,    0,  155,    2, 0x08,   15 /* Private */,
+      18,    0,  156,    2, 0x08,   16 /* Private */,
+      19,    1,  157,    2, 0x08,   17 /* Private */,
+      20,    1,  160,    2, 0x08,   19 /* Private */,
+      21,    0,  163,    2, 0x08,   21 /* Private */,
+      22,    0,  164,    2, 0x08,   22 /* Private */,
+      23,    1,  165,    2, 0x08,   23 /* Private */,
+      25,    1,  168,    2, 0x08,   25 /* Private */,
 
  // slots: parameters
     QMetaType::Void, 0x80000000 | 3,    4,
@@ -151,6 +170,10 @@ Q_CONSTINIT static const uint qt_meta_data_MainWindow[] = {
     QMetaType::Void,
     QMetaType::Void, QMetaType::Int,    4,
     QMetaType::Void, QMetaType::Int,    4,
+    QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void, QMetaType::Bool,   24,
+    QMetaType::Void, QMetaType::Bool,   24,
 
        0        // eod
 };
@@ -200,7 +223,17 @@ Q_CONSTINIT const QMetaObject MainWindow::staticMetaObject = { {
         QtPrivate::TypeAndForceComplete<int, std::false_type>,
         // method 'onConsoleScreenSelected'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        QtPrivate::TypeAndForceComplete<int, std::false_type>
+        QtPrivate::TypeAndForceComplete<int, std::false_type>,
+        // method 'increasePointerSize'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        // method 'decreasePointerSize'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        // method 'toggleConsoleFullscreen'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        QtPrivate::TypeAndForceComplete<bool, std::false_type>,
+        // method 'toggleAudienceFullscreen'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        QtPrivate::TypeAndForceComplete<bool, std::false_type>
     >,
     nullptr
 } };
@@ -228,6 +261,10 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 14: _t->onScreenCountChanged(); break;
         case 15: _t->onAudienceScreenSelected((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
         case 16: _t->onConsoleScreenSelected((*reinterpret_cast< std::add_pointer_t<int>>(_a[1]))); break;
+        case 17: _t->increasePointerSize(); break;
+        case 18: _t->decreasePointerSize(); break;
+        case 19: _t->toggleConsoleFullscreen((*reinterpret_cast< std::add_pointer_t<bool>>(_a[1]))); break;
+        case 20: _t->toggleAudienceFullscreen((*reinterpret_cast< std::add_pointer_t<bool>>(_a[1]))); break;
         default: ;
         }
     }
@@ -252,13 +289,13 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 17)
+        if (_id < 21)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 17;
+        _id -= 21;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 17)
+        if (_id < 21)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 17;
+        _id -= 21;
     }
     return _id;
 }

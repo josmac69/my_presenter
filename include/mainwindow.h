@@ -59,6 +59,13 @@ private slots:
     void onAudienceScreenSelected(int index);
     void onConsoleScreenSelected(int index);
 
+    // Pointer Resizing
+    void increasePointerSize();
+    void decreasePointerSize();
+
+    void toggleConsoleFullscreen(bool enabled); // Re-declared or just adding helper slots if needed
+    void toggleAudienceFullscreen(bool enabled);
+
 private:
     void loadPdf(const QString &filePath);
     void setupUi();
@@ -71,8 +78,6 @@ private:
     void saveSettings();
     
     // Window Mode Slots
-    void toggleConsoleFullscreen(bool enabled);
-    void toggleAudienceFullscreen(bool enabled);
     void toggleAspectRatioLock(bool enabled);
 
     // Data

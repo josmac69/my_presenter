@@ -109,6 +109,11 @@ void MainWindow::setupShortcuts()
     // System
     addToolKeys(Qt::Key_Q, SLOT(quitApp()));
     new QShortcut(QKeySequence(Qt::Key_Escape), this, SLOT(quitApp()), nullptr, Qt::ApplicationShortcut);
+
+    // Pointer Resizing (+/-)
+    addToolKeys(Qt::Key_Plus, SLOT(increasePointerSize()));
+    addToolKeys(Qt::Key_Equal, SLOT(increasePointerSize())); // Oftentimes + is Shift+=
+    addToolKeys(Qt::Key_Minus, SLOT(decreasePointerSize()));
 }
 
 // Slots for Actions
@@ -1041,6 +1046,11 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         // System
         case Qt::Key_Q: 
         case Qt::Key_Escape: quitApp(); return true;
+
+        // Pointer Resizing
+        case Qt::Key_Plus: 
+        case Qt::Key_Equal: increasePointerSize(); return true;
+        case Qt::Key_Minus: decreasePointerSize(); return true;
         }
     }
     return QMainWindow::eventFilter(obj, event);
@@ -1057,6 +1067,30 @@ void MainWindow::closeEvent(QCloseEvent *event)
     saveSettings();
     presentationDisplay->close();
     QMainWindow::closeEvent(event);
+}
+
+void MainWindow::increasePointerSize()
+{
+    int step = 10;
+    if (laserCheckBox->isChecked()) {
+        int val = laserSizeSlider->value();
+        laserSizeSlider->setValue(val + step);
+    } else if (zoomCheckBox->isChecked()) {
+        int val = zoomSizeSlider->value();
+        zoomSizeSlider->setValue(val + 50); // Wider step for zoom
+    }
+}
+
+void MainWindow::decreasePointerSize()
+{
+    int step = 10;
+    if (laserCheckBox->isChecked()) {
+        int val = laserSizeSlider->value();
+        laserSizeSlider->setValue(val - step);
+    } else if (zoomCheckBox->isChecked()) {
+        int val = zoomSizeSlider->value();
+        zoomSizeSlider->setValue(val - 50);
+    }
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
