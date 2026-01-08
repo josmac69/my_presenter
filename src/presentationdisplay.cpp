@@ -153,6 +153,7 @@ void PresentationDisplay::setDrawingColor(const QColor &color)
 void PresentationDisplay::setDrawingThickness(int thickness)
 {
     drawThickness = thickness;
+    if (drawingActive) setCursor(createPenCursor());
 }
 
 void PresentationDisplay::setDrawingStyle(Qt::PenStyle style)
@@ -169,28 +170,67 @@ void PresentationDisplay::clearDrawings()
 
 QCursor PresentationDisplay::createPenCursor()
 {
-    // Simple pencil or crosshair. Let's draw a pencil icon or just use CrossCursor
-    // Larger pencil with border
-    int size = 36;
+    // Canvas size enough for pencil + max thickness buffer
+    int size = 64;
     QPixmap pix(size, size);
     pix.fill(Qt::transparent);
     QPainter p(&pix);
     p.setRenderHint(QPainter::Antialiasing);
+
+    // Geometry
+    // We want the pencil tip to touch the "hotspot".
+    // We also want a circle centered at the "hotspot" representing thickness.
     
-    // Draw pencil tip (Polygon)
-    // Scale points from 24x24 to 36x36 roughly 1.5x
+    // Choose a hotspot that leaves room for the circle and the pencil body.
+    // Pencil body goes Up-Right. Circle expands in all directions.
+    // Max thickness 20 -> Radius 10.
+    // Let's place hotspot at (20, 64-20) = (20, 44).
+    QPoint hotspot(20, 44);
+
+    // 1. Draw Thickness Circle (Underlay)
+    // "transparent circle... print circle as big as thickness"
+    // We'll use a thin contrasting pen (e.g. Dark Gray or Black with slight transparency)
+    int t = drawThickness;
+    if (t < 1) t = 1;
+    
+    QPen circlePen(Qt::black);
+    circlePen.setWidth(1);
+    circlePen.setStyle(Qt::SolidLine);
+    p.setPen(circlePen);
+    p.setBrush(Qt::NoBrush); // Transparent fill
+    
+    // calc bounding rect: center is hotspot, size is t x t
+    QRectF circleRect(hotspot.x() - t/2.0, hotspot.y() - t/2.0, t, t);
+    p.drawEllipse(circleRect);
+
+    // 2. Draw Pencil
+    // Original Tip was roughly at bottom-left corner relative to body.
+    // Scale points 1.5x (from original 24px design).
+    // Original Points relative to Tip at (0,0):
+    // Tip(0,0), P2(9,0), P3(30,-21), P4(21,-30) -- roughly
+    // Let's just define the shape relative to the tip being at 'hotspot'.
+    
+    // Shift vector: Place the 'Tip' point of the polygon at 'hotspot'.
+    // Old Tip was (3, 33).
+    // Vector = hotspot - (3, 33).
+    int dx = hotspot.x() - 3;
+    int dy = hotspot.y() - 33;
+    
     QVector<QPointF> points;
-    points << QPointF(3, 33) << QPointF(12, 33) << QPointF(33, 12) << QPointF(24, 3);
-    
-    // Black border
+    // Apply shift to previous verified coordinates
+    points << QPointF(3 + dx, 33 + dy)   // Tip
+           << QPointF(12 + dx, 33 + dy)  // Bottom Edge
+           << QPointF(33 + dx, 12 + dy)  // Top Right
+           << QPointF(24 + dx, 3 + dy);  // Top Edge
+
+    // Black border for pencil
     QPen borderPen(Qt::black);
     borderPen.setWidth(2);
     p.setPen(borderPen);
     p.setBrush(drawColor); 
     p.drawPolygon(QPolygonF(points));
     
-    // Hotspot bottom-left (0, height-1)
-    return QCursor(pix, 0, 35);
+    return QCursor(pix, hotspot.x(), hotspot.y());
 }
 
 QCursor PresentationDisplay::createLaserCursor()
