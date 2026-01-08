@@ -27,7 +27,7 @@ QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 namespace {
 struct qt_meta_stringdata_MainWindow_t {
-    uint offsetsAndSizes[58];
+    uint offsetsAndSizes[62];
     char stringdata0[11];
     char stringdata1[20];
     char stringdata2[1];
@@ -57,6 +57,8 @@ struct qt_meta_stringdata_MainWindow_t {
     char stringdata26[24];
     char stringdata27[8];
     char stringdata28[25];
+    char stringdata29[16];
+    char stringdata30[22];
 };
 #define QT_MOC_LITERAL(ofs, len) \
     uint(sizeof(qt_meta_stringdata_MainWindow_t::offsetsAndSizes) + ofs), len 
@@ -90,7 +92,9 @@ Q_CONSTINIT static const qt_meta_stringdata_MainWindow_t qt_meta_stringdata_Main
         QT_MOC_LITERAL(341, 12),  // "setLaserBlue"
         QT_MOC_LITERAL(354, 23),  // "toggleConsoleFullscreen"
         QT_MOC_LITERAL(378, 7),  // "enabled"
-        QT_MOC_LITERAL(386, 24)   // "toggleAudienceFullscreen"
+        QT_MOC_LITERAL(386, 24),  // "toggleAudienceFullscreen"
+        QT_MOC_LITERAL(411, 15),  // "activateDrawing"
+        QT_MOC_LITERAL(427, 21)   // "updateDrawingSettings"
     },
     "MainWindow",
     "onBookmarkActivated",
@@ -120,7 +124,9 @@ Q_CONSTINIT static const qt_meta_stringdata_MainWindow_t qt_meta_stringdata_Main
     "setLaserBlue",
     "toggleConsoleFullscreen",
     "enabled",
-    "toggleAudienceFullscreen"
+    "toggleAudienceFullscreen",
+    "activateDrawing",
+    "updateDrawingSettings"
 };
 #undef QT_MOC_LITERAL
 } // unnamed namespace
@@ -131,7 +137,7 @@ Q_CONSTINIT static const uint qt_meta_data_MainWindow[] = {
       10,       // revision
        0,       // classname
        0,    0, // classinfo
-      24,   14, // methods
+      26,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -139,30 +145,32 @@ Q_CONSTINIT static const uint qt_meta_data_MainWindow[] = {
        0,       // signalCount
 
  // slots: name, argc, parameters, tag, flags, initial metatype offsets
-       1,    1,  158,    2, 0x08,    1 /* Private */,
-       5,    0,  161,    2, 0x08,    3 /* Private */,
-       6,    0,  162,    2, 0x08,    4 /* Private */,
-       7,    0,  163,    2, 0x08,    5 /* Private */,
-       8,    0,  164,    2, 0x08,    6 /* Private */,
-       9,    0,  165,    2, 0x08,    7 /* Private */,
-      10,    0,  166,    2, 0x08,    8 /* Private */,
-      11,    0,  167,    2, 0x08,    9 /* Private */,
-      12,    0,  168,    2, 0x08,   10 /* Private */,
-      13,    0,  169,    2, 0x08,   11 /* Private */,
-      14,    0,  170,    2, 0x08,   12 /* Private */,
-      15,    0,  171,    2, 0x08,   13 /* Private */,
-      16,    0,  172,    2, 0x08,   14 /* Private */,
-      17,    0,  173,    2, 0x08,   15 /* Private */,
-      18,    0,  174,    2, 0x08,   16 /* Private */,
-      19,    1,  175,    2, 0x08,   17 /* Private */,
-      20,    1,  178,    2, 0x08,   19 /* Private */,
-      21,    0,  181,    2, 0x08,   21 /* Private */,
-      22,    0,  182,    2, 0x08,   22 /* Private */,
-      23,    0,  183,    2, 0x08,   23 /* Private */,
-      24,    0,  184,    2, 0x08,   24 /* Private */,
-      25,    0,  185,    2, 0x08,   25 /* Private */,
-      26,    1,  186,    2, 0x08,   26 /* Private */,
-      28,    1,  189,    2, 0x08,   28 /* Private */,
+       1,    1,  170,    2, 0x08,    1 /* Private */,
+       5,    0,  173,    2, 0x08,    3 /* Private */,
+       6,    0,  174,    2, 0x08,    4 /* Private */,
+       7,    0,  175,    2, 0x08,    5 /* Private */,
+       8,    0,  176,    2, 0x08,    6 /* Private */,
+       9,    0,  177,    2, 0x08,    7 /* Private */,
+      10,    0,  178,    2, 0x08,    8 /* Private */,
+      11,    0,  179,    2, 0x08,    9 /* Private */,
+      12,    0,  180,    2, 0x08,   10 /* Private */,
+      13,    0,  181,    2, 0x08,   11 /* Private */,
+      14,    0,  182,    2, 0x08,   12 /* Private */,
+      15,    0,  183,    2, 0x08,   13 /* Private */,
+      16,    0,  184,    2, 0x08,   14 /* Private */,
+      17,    0,  185,    2, 0x08,   15 /* Private */,
+      18,    0,  186,    2, 0x08,   16 /* Private */,
+      19,    1,  187,    2, 0x08,   17 /* Private */,
+      20,    1,  190,    2, 0x08,   19 /* Private */,
+      21,    0,  193,    2, 0x08,   21 /* Private */,
+      22,    0,  194,    2, 0x08,   22 /* Private */,
+      23,    0,  195,    2, 0x08,   23 /* Private */,
+      24,    0,  196,    2, 0x08,   24 /* Private */,
+      25,    0,  197,    2, 0x08,   25 /* Private */,
+      26,    1,  198,    2, 0x08,   26 /* Private */,
+      28,    1,  201,    2, 0x08,   28 /* Private */,
+      29,    0,  204,    2, 0x08,   30 /* Private */,
+      30,    0,  205,    2, 0x08,   31 /* Private */,
 
  // slots: parameters
     QMetaType::Void, 0x80000000 | 3,    4,
@@ -189,6 +197,8 @@ Q_CONSTINIT static const uint qt_meta_data_MainWindow[] = {
     QMetaType::Void,
     QMetaType::Void, QMetaType::Bool,   27,
     QMetaType::Void, QMetaType::Bool,   27,
+    QMetaType::Void,
+    QMetaType::Void,
 
        0        // eod
 };
@@ -254,7 +264,11 @@ Q_CONSTINIT const QMetaObject MainWindow::staticMetaObject = { {
         QtPrivate::TypeAndForceComplete<bool, std::false_type>,
         // method 'toggleAudienceFullscreen'
         QtPrivate::TypeAndForceComplete<void, std::false_type>,
-        QtPrivate::TypeAndForceComplete<bool, std::false_type>
+        QtPrivate::TypeAndForceComplete<bool, std::false_type>,
+        // method 'activateDrawing'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>,
+        // method 'updateDrawingSettings'
+        QtPrivate::TypeAndForceComplete<void, std::false_type>
     >,
     nullptr
 } };
@@ -289,6 +303,8 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 21: _t->setLaserBlue(); break;
         case 22: _t->toggleConsoleFullscreen((*reinterpret_cast< std::add_pointer_t<bool>>(_a[1]))); break;
         case 23: _t->toggleAudienceFullscreen((*reinterpret_cast< std::add_pointer_t<bool>>(_a[1]))); break;
+        case 24: _t->activateDrawing(); break;
+        case 25: _t->updateDrawingSettings(); break;
         default: ;
         }
     }
@@ -313,13 +329,13 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 24)
+        if (_id < 26)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 24;
+        _id -= 26;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 24)
+        if (_id < 26)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 24;
+        _id -= 26;
     }
     return _id;
 }

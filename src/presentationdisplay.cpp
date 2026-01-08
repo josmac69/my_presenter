@@ -8,6 +8,7 @@
 PresentationDisplay::PresentationDisplay(QWidget *parent)
     : QWidget(parent), pdf(nullptr), currentPage(0), splitView(false),
       laserActive(false), laserDiameter(60), laserOpacity(128), laserColor(Qt::red), zoomActive(false), zoomFactor(2.0f), zoomDiameter(250),
+      drawingActive(false), drawColor(Qt::red), drawThickness(5), drawStyle(Qt::SolidLine), isDrawing(false),
       lockedAspectRatio(false), isResizing(false)
 {
     setMouseTracking(true);
@@ -41,6 +42,14 @@ void PresentationDisplay::setSplitMode(bool split)
 void PresentationDisplay::refreshSlide()
 {
     renderCurrentSlide();
+    renderCurrentSlide();
+    // Default: drawings persist. If we wanted to clear them on slide change:
+    // clearDrawings(); 
+    // For now, per user request, we might want persistent canvas or one per page. 
+    // Standard presentation behavior usually clears drawings reset on page change.
+    // Let's implement auto-clear for now to keep it clean.
+    strokes.clear();
+    currentStroke.clear();
     update();
 }
 
@@ -49,8 +58,8 @@ void PresentationDisplay::enableLaserPointer(bool active)
     laserActive = active;
     
     // Only update cursor if Zoom is NOT active. 
-    // If Zoom is active, it overrides the cursor (Blank), so we don't touch it.
-    if (!zoomActive) {
+    // If Zoom or Drawing is active, they might override.
+    if (!zoomActive && !drawingActive) {
         if (active) {
             if (laserCursor.bitmap().isNull()) {
                  laserCursor = createLaserCursor();
@@ -113,6 +122,72 @@ void PresentationDisplay::setLaserColor(const QColor &color)
     if (laserActive && !zoomActive) {
         setCursor(laserCursor);
     }
+}
+
+void PresentationDisplay::enableDrawing(bool active)
+{
+    drawingActive = active;
+    if (active) {
+        // Drawing takes precedence or similar to laser?
+        // Let's say Drawing > Laser
+        setCursor(createPenCursor());
+    } else {
+        // Fallback
+        if (laserActive && !zoomActive) {
+            setCursor(laserCursor);
+        } else if (zoomActive) {
+            setCursor(Qt::BlankCursor);
+        } else {
+            unsetCursor();
+        }
+    }
+    update();
+}
+
+void PresentationDisplay::setDrawingColor(const QColor &color)
+{
+    drawColor = color;
+    if (drawingActive) setCursor(createPenCursor()); // Update pen cursor color if we want custom cursor
+}
+
+void PresentationDisplay::setDrawingThickness(int thickness)
+{
+    drawThickness = thickness;
+}
+
+void PresentationDisplay::setDrawingStyle(Qt::PenStyle style)
+{
+    drawStyle = style;
+}
+
+void PresentationDisplay::clearDrawings()
+{
+    strokes.clear();
+    currentStroke.clear();
+    update();
+}
+
+QCursor PresentationDisplay::createPenCursor()
+{
+    // Simple pencil or crosshair. Let's draw a pencil icon or just use CrossCursor
+    // For a nice effect, let's create a custom pixmap that looks like a pencil tip of the current color.
+    int size = 24;
+    QPixmap pix(size, size);
+    pix.fill(Qt::transparent);
+    QPainter p(&pix);
+    p.setRenderHint(QPainter::Antialiasing);
+    
+    // Draw pencil tip
+    QVector<QPointF> points;
+    points << QPointF(2, 22) << QPointF(8, 22) << QPointF(22, 8) << QPointF(16, 2);
+    p.setPen(Qt::NoPen);
+    p.setBrush(drawColor); 
+    p.drawPolygon(QPolygonF(points));
+    
+    // Tip
+    p.setBrush(Qt::black);
+    // Use Qt::CrossCursor for precision if this is too fancy, but user asked for "pencil icon"
+    return QCursor(pix, 0, 23); // Hotspot bottom-left
 }
 
 QCursor PresentationDisplay::createLaserCursor()
@@ -211,6 +286,35 @@ void PresentationDisplay::mouseMoveEvent(QMouseEvent *event)
     if (zoomActive) {
         update();
     }
+    
+    if (drawingActive && isDrawing) {
+        currentStroke << event->pos();
+        update();
+    }
+}
+
+void PresentationDisplay::mousePressEvent(QMouseEvent *event)
+{
+    if (drawingActive && event->button() == Qt::LeftButton) {
+        isDrawing = true;
+        currentStroke.clear();
+        currentStroke << event->pos();
+    }
+}
+
+void PresentationDisplay::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (drawingActive && event->button() == Qt::LeftButton && isDrawing) {
+        isDrawing = false;
+        if (!currentStroke.isEmpty()) {
+            Stroke s;
+            s.points = currentStroke;
+            s.pen = QPen(drawColor, drawThickness, drawStyle, Qt::RoundCap, Qt::RoundJoin);
+            strokes.append(s);
+            currentStroke.clear();
+        }
+        update();
+    }
 }
 
 void PresentationDisplay::renderCurrentSlide()
@@ -265,6 +369,19 @@ void PresentationDisplay::paintEvent(QPaintEvent *)
     slideRect.moveCenter(rect().center());
     
     painter.drawImage(slideRect, cachedSlide);
+
+    // Draw Strokes
+    painter.setRenderHint(QPainter::Antialiasing);
+    for (const Stroke &s : strokes) {
+        painter.setPen(s.pen);
+        painter.drawPolyline(s.points);
+    }
+    
+    if (!currentStroke.isEmpty()) {
+        QPen pen(drawColor, drawThickness, drawStyle, Qt::RoundCap, Qt::RoundJoin);
+        painter.setPen(pen);
+        painter.drawPolyline(currentStroke);
+    }
 
     // Draw Magnifier
     if (zoomActive) {

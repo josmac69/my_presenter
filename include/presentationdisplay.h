@@ -29,15 +29,25 @@ public:
     void enableZoom(bool active);
     void setZoomSettings(float factor, int diameter);
     void setAspectRatioLock(bool locked);
+
+    // Drawing
+    void enableDrawing(bool active);
+    void setDrawingColor(const QColor &color);
+    void setDrawingThickness(int thickness);
+    void setDrawingStyle(Qt::PenStyle style);
+    void clearDrawings();
     
 protected:
     void paintEvent(QPaintEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
 
 private:
     void renderCurrentSlide();
     QCursor createLaserCursor();
+    QCursor createPenCursor(); // Helper for pencil cursor
 
     QPdfDocument *pdf;
     int currentPage;
@@ -57,6 +67,19 @@ private:
     int zoomDiameter;
     QPoint mousePos;
     
+    // Drawing
+    struct Stroke {
+        QPolygonF points;
+        QPen pen;
+    };
+    QList<Stroke> strokes;
+    QPolygonF currentStroke;
+    bool drawingActive;
+    QColor drawColor;
+    int drawThickness;
+    Qt::PenStyle drawStyle;
+    bool isDrawing; // Track if mouse is down
+
     // Window Mode
     bool lockedAspectRatio;
     bool isResizing;

@@ -17,7 +17,10 @@
 #include <QColorDialog>
 #include <QFontDialog>
 #include <QScrollArea>
+#include <QScrollArea>
 #include <QComboBox>
+#include <QSpinBox>
+#include <QGroupBox>
 
 #include <QTime>
 
@@ -70,6 +73,10 @@ private slots:
 
     void toggleConsoleFullscreen(bool enabled); // Re-declared or just adding helper slots if needed
     void toggleAudienceFullscreen(bool enabled);
+    
+    // Drawing Slots
+    void activateDrawing();
+    void updateDrawingSettings();
 
 private:
     void loadPdf(const QString &filePath);
@@ -133,6 +140,13 @@ private:
     QSlider *timerFontSlider;
     QPushButton *clockColorButton;
     QPushButton *timerColorButton;
+    
+    // Drawing Controls
+    QGroupBox *drawingGroup;
+    QCheckBox *drawingCheckBox;
+    QComboBox *drawingColorCombo;
+    QComboBox *drawingStyleCombo;
+    QSpinBox *drawingThicknessSpin;
     
     // Window Controls
     QCheckBox *consoleFullscreenCheck;

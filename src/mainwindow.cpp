@@ -119,6 +119,12 @@ void MainWindow::setupShortcuts()
     addToolKeys(Qt::Key_R, SLOT(setLaserRed()));
     addToolKeys(Qt::Key_G, SLOT(setLaserGreen()));
     addToolKeys(Qt::Key_B, SLOT(setLaserBlue()));
+
+    // Drawing (D)
+    addToolKeys(Qt::Key_D, SLOT(activateDrawing()));
+
+    // Drawing (D)
+    addToolKeys(Qt::Key_D, SLOT(activateDrawing()));
 }
 
 // Slots for Actions
@@ -156,42 +162,7 @@ void MainWindow::lastSlide()
     }
 }
 
-// toggleLaser removed
-void MainWindow::activateLaser()
-{
-    // Logic:
-    // 1. If currently in Laser Mode (and implied not Zoom), Toggle Check = OFF (Return to Normal)
-    // 2. If currently Normal or Zoom, Switch to Laser (Laser ON, Zoom OFF)
-
-    if (laserCheckBox->isChecked()) {
-        resetCursor();
-    } else {
-        zoomCheckBox->setChecked(false);
-        laserCheckBox->setChecked(true);
-    }
-}
-
-void MainWindow::resetCursor()
-{
-    // Switch to Normal:
-    // Disable both
-    zoomCheckBox->setChecked(false);
-    laserCheckBox->setChecked(false);
-}
-
-void MainWindow::activateZoom()
-{
-    // Logic:
-    // 1. If currently in Zoom Mode (and implied not Laser), Toggle Check = OFF (Return to Normal)
-    // 2. If currently Normal or Laser, Switch to Zoom (Zoom ON, Laser OFF)
-
-    if (zoomCheckBox->isChecked()) {
-        resetCursor();
-    } else {
-        laserCheckBox->setChecked(false);
-        zoomCheckBox->setChecked(true);
-    }
-}
+// Methods moved to end of file with updated logic
 
 void MainWindow::toggleTimer()
 {
@@ -491,6 +462,43 @@ void MainWindow::setupUi()
     featuresGrid->addWidget(zMagLbl, 6, 0);
     featuresGrid->addWidget(zoomMagSlider, 6, 1);
     featuresGrid->addWidget(zMagVal, 6, 2);
+
+    // --- Drawing Controls ---
+    drawingGroup = new QGroupBox("Drawing Tool");
+    drawingGroup->setStyleSheet("QGroupBox { border: 1px solid gray; margin-top: 10px; } QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; padding: 0 3px; }");
+    QGridLayout *drawingLayout = new QGridLayout(drawingGroup);
+    drawingLayout->setContentsMargins(5, 15, 5, 5); // Top margin for title
+
+    drawingCheckBox = new QCheckBox("Active (D)");
+    drawingLayout->addWidget(drawingCheckBox, 0, 0, 1, 2);
+
+    drawingLayout->addWidget(new QLabel("Color:"), 1, 0);
+    drawingColorCombo = new QComboBox();
+    drawingColorCombo->addItems({"Red", "Green", "Blue", "Black", "White"});
+    drawingColorCombo->setStyleSheet("QComboBox { background: white; color: black; padding: 2px; }");
+    drawingLayout->addWidget(drawingColorCombo, 1, 1);
+
+    drawingLayout->addWidget(new QLabel("Style:"), 2, 0);
+    drawingStyleCombo = new QComboBox();
+    drawingStyleCombo->addItems({"Solid", "Dash", "Dot"});
+    drawingStyleCombo->setStyleSheet("QComboBox { background: white; color: black; padding: 2px; }");
+    drawingLayout->addWidget(drawingStyleCombo, 2, 1);
+
+    drawingLayout->addWidget(new QLabel("Thick:"), 3, 0);
+    drawingThicknessSpin = new QSpinBox();
+    drawingThicknessSpin->setRange(1, 20);
+    drawingThicknessSpin->setValue(5);
+    drawingThicknessSpin->setStyleSheet("QSpinBox { background: white; color: black; }");
+    drawingLayout->addWidget(drawingThicknessSpin, 3, 1);
+
+    // Initial signals
+    connect(drawingCheckBox, &QCheckBox::clicked, this, &MainWindow::activateDrawing); // Checkbox toggle triggers logic
+    connect(drawingColorCombo, &QComboBox::currentTextChanged, this, &MainWindow::updateDrawingSettings);
+    connect(drawingStyleCombo, &QComboBox::currentTextChanged, this, &MainWindow::updateDrawingSettings);
+    connect(drawingThicknessSpin, QOverload<int>::of(&QSpinBox::valueChanged), this, &MainWindow::updateDrawingSettings);
+
+    // Add Drawing Group to Row 7
+    featuresGrid->addWidget(drawingGroup, 7, 0, 1, 3);
 
     controlsRight->addLayout(featuresGrid);
 
@@ -1061,6 +1069,9 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         case Qt::Key_R: setLaserRed(); return true;
         case Qt::Key_G: setLaserGreen(); return true;
         case Qt::Key_B: setLaserBlue(); return true;
+
+        // Drawing
+        case Qt::Key_D: activateDrawing(); return true;
         }
     }
     return QMainWindow::eventFilter(obj, event);
@@ -1122,6 +1133,119 @@ void MainWindow::setLaserBlue()
     if (laserCheckBox->isChecked()) {
         laserColorCombo->setCurrentText("Blue");
     }
+}
+
+void MainWindow::activateDrawing()
+{
+    // Toggle state based on checkbox if invoked via key, or sync if clicked
+    // But hotkey calls this, so we should toggle.
+    // If called from checkbox click, param is ignored (clicked(bool) is void slot here? No, clicked(bool))
+    // Wait, connect(clicked) passes bool. Slot is void. Qt drops arguments.
+    // So we check sender or current state.
+    
+    // If invoked by hotkey (sender is shortcut or nullptr/this), we toggle checkbox.
+    // If invoked by checkbox (sender is checkbox), we use its state.
+    
+    bool active = drawingCheckBox->isChecked();
+    if (sender() != drawingCheckBox) {
+        active = !active;
+        drawingCheckBox->setChecked(active);
+    }
+    
+    if (active) {
+        // Enforce exclusivity
+        if (laserCheckBox->isChecked()) {
+             laserCheckBox->setChecked(false);
+             presentationDisplay->enableLaserPointer(false);
+        }
+        if (zoomCheckBox->isChecked()) {
+             zoomCheckBox->setChecked(false);
+             presentationDisplay->enableZoom(false);
+        }
+    }
+
+    presentationDisplay->enableDrawing(active);
+    if (active) updateDrawingSettings(); // Apply initial settings
+}
+
+void MainWindow::updateDrawingSettings()
+{
+    // Color
+    QString colorName = drawingColorCombo->currentText();
+    QColor c = Qt::red;
+    if (colorName == "Green") c = Qt::green;
+    else if (colorName == "Blue") c = Qt::blue;
+    else if (colorName == "Black") c = Qt::black;
+    else if (colorName == "White") c = Qt::white;
+    presentationDisplay->setDrawingColor(c);
+
+    // Style
+    QString styleName = drawingStyleCombo->currentText();
+    Qt::PenStyle s = Qt::SolidLine;
+    if (styleName == "Dash") s = Qt::DashLine;
+    else if (styleName == "Dot") s = Qt::DotLine;
+    presentationDisplay->setDrawingStyle(s);
+
+    // Thickness
+    presentationDisplay->setDrawingThickness(drawingThicknessSpin->value());
+}
+
+void MainWindow::resetCursor()
+{
+    // Reset ALL tools
+    laserCheckBox->setChecked(false);
+    presentationDisplay->enableLaserPointer(false);
+
+    zoomCheckBox->setChecked(false);
+    presentationDisplay->enableZoom(false);
+    
+    drawingCheckBox->setChecked(false);
+    presentationDisplay->enableDrawing(false);
+}
+
+void MainWindow::activateLaser()
+{
+    // Toggle if hotkey used
+    bool active = laserCheckBox->isChecked();
+    if (sender() != laserCheckBox) {
+        active = !active;
+        laserCheckBox->setChecked(active);
+    }
+
+    if (active) {
+        // Turn off Zoom and Drawing
+        if (zoomCheckBox->isChecked()) {
+            zoomCheckBox->setChecked(false);
+            presentationDisplay->enableZoom(false);
+        }
+        if (drawingCheckBox->isChecked()) {
+            drawingCheckBox->setChecked(false);
+            presentationDisplay->enableDrawing(false);
+        }
+    }
+    presentationDisplay->enableLaserPointer(active);
+}
+
+void MainWindow::activateZoom()
+{
+    bool active = zoomCheckBox->isChecked();
+    if (sender() != zoomCheckBox) {
+        active = !active;
+        zoomCheckBox->setChecked(active);
+    }
+
+    if (active) {
+        // Turn off Laser and Drawing
+        if (laserCheckBox->isChecked()) {
+            laserCheckBox->setChecked(false);
+            presentationDisplay->enableLaserPointer(false);
+        }
+        if (drawingCheckBox->isChecked()) {
+            drawingCheckBox->setChecked(false);
+            presentationDisplay->enableDrawing(false);
+        }
+    }
+    presentationDisplay->enableZoom(active);
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
