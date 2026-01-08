@@ -115,10 +115,11 @@ void MainWindow::setupShortcuts()
     addToolKeys(Qt::Key_Equal, SLOT(increasePointerSize())); // Oftentimes + is Shift+=
     addToolKeys(Qt::Key_Minus, SLOT(decreasePointerSize()));
 
-    // Laser Color Shortcuts
+    // Color Shortcuts (Multiplexed Laser/Drawing)
     addToolKeys(Qt::Key_R, SLOT(setLaserRed()));
     addToolKeys(Qt::Key_G, SLOT(setLaserGreen()));
     addToolKeys(Qt::Key_B, SLOT(setLaserBlue()));
+    addToolKeys(Qt::Key_W, SLOT(setWhite()));
 
     // Drawing (D)
     addToolKeys(Qt::Key_D, SLOT(activateDrawing()));
@@ -1066,6 +1067,7 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         case Qt::Key_R: setLaserRed(); return true;
         case Qt::Key_G: setLaserGreen(); return true;
         case Qt::Key_B: setLaserBlue(); return true;
+        case Qt::Key_W: setWhite(); return true;
 
         // Drawing
         case Qt::Key_D: activateDrawing(); return true;
@@ -1096,6 +1098,9 @@ void MainWindow::increasePointerSize()
     } else if (zoomCheckBox->isChecked()) {
         int val = zoomSizeSlider->value();
         zoomSizeSlider->setValue(val + 50); // Wider step for zoom
+    } else if (drawingCheckBox->isChecked()) {
+        int val = drawingThicknessSpin->value();
+        drawingThicknessSpin->setValue(val + 1);
     }
 }
 
@@ -1108,27 +1113,43 @@ void MainWindow::decreasePointerSize()
     } else if (zoomCheckBox->isChecked()) {
         int val = zoomSizeSlider->value();
         zoomSizeSlider->setValue(val - 50);
+    } else if (drawingCheckBox->isChecked()) {
+        int val = drawingThicknessSpin->value();
+        drawingThicknessSpin->setValue(val - 1);
     }
 }
 
 void MainWindow::setLaserRed()
 {
-    if (laserCheckBox->isChecked()) {
+    if (drawingCheckBox->isChecked()) {
+        drawingColorCombo->setCurrentText("Red");
+    } else if (laserCheckBox->isChecked()) {
         laserColorCombo->setCurrentText("Red");
     }
 }
 
 void MainWindow::setLaserGreen()
 {
-    if (laserCheckBox->isChecked()) {
+    if (drawingCheckBox->isChecked()) {
+        drawingColorCombo->setCurrentText("Green");
+    } else if (laserCheckBox->isChecked()) {
         laserColorCombo->setCurrentText("Green");
     }
 }
 
 void MainWindow::setLaserBlue()
 {
-    if (laserCheckBox->isChecked()) {
+    if (drawingCheckBox->isChecked()) {
+        drawingColorCombo->setCurrentText("Blue");
+    } else if (laserCheckBox->isChecked()) {
         laserColorCombo->setCurrentText("Blue");
+    }
+}
+
+void MainWindow::setWhite()
+{
+    if (drawingCheckBox->isChecked()) {
+        drawingColorCombo->setCurrentText("White");
     }
 }
 

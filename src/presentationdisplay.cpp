@@ -170,24 +170,27 @@ void PresentationDisplay::clearDrawings()
 QCursor PresentationDisplay::createPenCursor()
 {
     // Simple pencil or crosshair. Let's draw a pencil icon or just use CrossCursor
-    // For a nice effect, let's create a custom pixmap that looks like a pencil tip of the current color.
-    int size = 24;
+    // Larger pencil with border
+    int size = 36;
     QPixmap pix(size, size);
     pix.fill(Qt::transparent);
     QPainter p(&pix);
     p.setRenderHint(QPainter::Antialiasing);
     
-    // Draw pencil tip
+    // Draw pencil tip (Polygon)
+    // Scale points from 24x24 to 36x36 roughly 1.5x
     QVector<QPointF> points;
-    points << QPointF(2, 22) << QPointF(8, 22) << QPointF(22, 8) << QPointF(16, 2);
-    p.setPen(Qt::NoPen);
+    points << QPointF(3, 33) << QPointF(12, 33) << QPointF(33, 12) << QPointF(24, 3);
+    
+    // Black border
+    QPen borderPen(Qt::black);
+    borderPen.setWidth(2);
+    p.setPen(borderPen);
     p.setBrush(drawColor); 
     p.drawPolygon(QPolygonF(points));
     
-    // Tip
-    p.setBrush(Qt::black);
-    // Use Qt::CrossCursor for precision if this is too fancy, but user asked for "pencil icon"
-    return QCursor(pix, 0, 23); // Hotspot bottom-left
+    // Hotspot bottom-left (0, height-1)
+    return QCursor(pix, 0, 35);
 }
 
 QCursor PresentationDisplay::createLaserCursor()

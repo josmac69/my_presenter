@@ -70,6 +70,7 @@ private slots:
     void setLaserRed();
     void setLaserGreen();
     void setLaserBlue();
+    void setWhite(); // For Drawing (Active W)
 
     void toggleConsoleFullscreen(bool enabled); // Re-declared or just adding helper slots if needed
     void toggleAudienceFullscreen(bool enabled);
