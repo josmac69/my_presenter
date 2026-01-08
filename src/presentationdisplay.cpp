@@ -7,7 +7,7 @@
 
 PresentationDisplay::PresentationDisplay(QWidget *parent)
     : QWidget(parent), pdf(nullptr), currentPage(0), splitView(false),
-      laserActive(false), laserDiameter(60), laserOpacity(128), zoomActive(false), zoomFactor(2.0f), zoomDiameter(250),
+      laserActive(false), laserDiameter(60), laserOpacity(128), laserColor(Qt::red), zoomActive(false), zoomFactor(2.0f), zoomDiameter(250),
       lockedAspectRatio(false), isResizing(false)
 {
     setMouseTracking(true);
@@ -102,6 +102,19 @@ void PresentationDisplay::setLaserSettings(int diameter, int opacity)
     }
 }
 
+void PresentationDisplay::setLaserColor(const QColor &color)
+{
+    laserColor = color;
+    
+    // Regenerate cursor
+    laserCursor = createLaserCursor();
+    
+    // If active and not Zoomed, apply immediately
+    if (laserActive && !zoomActive) {
+        setCursor(laserCursor);
+    }
+}
+
 QCursor PresentationDisplay::createLaserCursor()
 {
     int size = laserDiameter; 
@@ -117,11 +130,15 @@ QCursor PresentationDisplay::createLaserCursor()
     // Radial gradient for "blurry borders"
     QRadialGradient gradient(size/2, size/2, size/2);
     // Center opacity user-defined
-    gradient.setColorAt(0.0, QColor(255, 0, 0, laserOpacity)); 
+    // Center opacity user-defined
+    QColor c1 = laserColor; c1.setAlpha(laserOpacity);
+    gradient.setColorAt(0.0, c1); 
     // Midpoint opacity slightly less
-    gradient.setColorAt(0.5, QColor(255, 0, 0, static_cast<int>(laserOpacity * 0.8))); 
+    QColor c2 = laserColor; c2.setAlpha(static_cast<int>(laserOpacity * 0.8));
+    gradient.setColorAt(0.5, c2); 
     // Edge transparent
-    gradient.setColorAt(1.0, QColor(255, 0, 0, 0));   
+    QColor c3 = laserColor; c3.setAlpha(0);
+    gradient.setColorAt(1.0, c3);   
     
     painter.setBrush(gradient);
     painter.setPen(Qt::NoPen);

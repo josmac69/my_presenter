@@ -7,7 +7,8 @@ TEMPLATE = app
 CONFIG  += c++17
 
 # Output directory for the binary
-DESTDIR  = bin
+# Output directory for the binary
+DESTDIR  = ../bin
 
 # Source files
 SOURCES += src/main.cpp \

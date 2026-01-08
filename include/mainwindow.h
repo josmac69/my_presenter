@@ -17,6 +17,7 @@
 #include <QColorDialog>
 #include <QFontDialog>
 #include <QScrollArea>
+#include <QComboBox>
 
 #include <QTime>
 
@@ -113,6 +114,7 @@ private:
     QSlider *zoomMagSlider;
     QSlider *laserSizeSlider;
     QSlider *laserOpacitySlider;
+    QComboBox *laserColorCombo; // NEW
     
     // Font Controls
     QPushButton *clockFontButton;

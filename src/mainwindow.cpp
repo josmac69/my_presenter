@@ -69,7 +69,8 @@ MainWindow::~MainWindow()
 
 void MainWindow::setupShortcuts()
 {
-    // Navigation
+    // Navigation (Generic keys usually handle mods fine, but being explicit doesn't hurt if we want strictness,
+    // though here we care most about the letters L, Z, N, S, P, Q)
     new QShortcut(QKeySequence(Qt::Key_Right), this, SLOT(nextSlide()), nullptr, Qt::ApplicationShortcut);
     new QShortcut(QKeySequence(Qt::Key_Down), this, SLOT(nextSlide()), nullptr, Qt::ApplicationShortcut);
     new QShortcut(QKeySequence(Qt::Key_Space), this, SLOT(nextSlide()), nullptr, Qt::ApplicationShortcut);
@@ -81,23 +82,34 @@ void MainWindow::setupShortcuts()
     new QShortcut(QKeySequence(Qt::Key_Home), this, SLOT(firstSlide()), nullptr, Qt::ApplicationShortcut);
     new QShortcut(QKeySequence(Qt::Key_End), this, SLOT(lastSlide()), nullptr, Qt::ApplicationShortcut);
 
-    // Tools
-    new QShortcut(QKeySequence(Qt::Key_L), this, SLOT(activateLaser()), nullptr, Qt::ApplicationShortcut);
-    new QShortcut(QKeySequence(Qt::Key_N), this, SLOT(resetCursor()), nullptr, Qt::ApplicationShortcut);
-    
-    new QShortcut(QKeySequence(Qt::Key_Z), this, SLOT(activateZoom()), nullptr, Qt::ApplicationShortcut);
-    // Note: using SLOT() macro for consistency with above, or new connection syntax. 
-    // Mixing them is fine but ApplicationShortcut is the key.
-    
-    new QShortcut(QKeySequence(Qt::Key_P), this, SLOT(toggleTimer()), nullptr, Qt::ApplicationShortcut);
-    
+    // Tools - With Shift/Caps support, Explicitly bound to BOTH windows for reliability
+    auto addToolKeys = [this](int key, const char* slot) {
+        // Main Window (Application wide, covers Console)
+        new QShortcut(QKeySequence(key), this, slot, nullptr, Qt::ApplicationShortcut);
+        new QShortcut(QKeySequence(key | Qt::ShiftModifier), this, slot, nullptr, Qt::ApplicationShortcut);
+
+        // Audience Window (Explicit WindowShortcut to ensure focus works)
+        if (presentationDisplay) {
+            new QShortcut(QKeySequence(key), presentationDisplay, slot, nullptr, Qt::WindowShortcut);
+            new QShortcut(QKeySequence(key | Qt::ShiftModifier), presentationDisplay, slot, nullptr, Qt::WindowShortcut);
+        }
+    };
+
+    addToolKeys(Qt::Key_L, SLOT(activateLaser()));
+    addToolKeys(Qt::Key_N, SLOT(resetCursor()));
+    addToolKeys(Qt::Key_Z, SLOT(activateZoom()));
+
+    // Timer: P and T
+    addToolKeys(Qt::Key_P, SLOT(toggleTimer()));
+    addToolKeys(Qt::Key_T, SLOT(toggleTimer()));
+
     new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_S), this, SLOT(toggleSplitView()), nullptr, Qt::ApplicationShortcut);
 
     // Screen Management
-    new QShortcut(QKeySequence(Qt::Key_S), this, SLOT(switchScreens()), nullptr, Qt::ApplicationShortcut);
+    addToolKeys(Qt::Key_S, SLOT(switchScreens()));
 
     // System
-    new QShortcut(QKeySequence(Qt::Key_Q), this, SLOT(quitApp()), nullptr, Qt::ApplicationShortcut);
+    addToolKeys(Qt::Key_Q, SLOT(quitApp()));
     new QShortcut(QKeySequence(Qt::Key_Escape), this, SLOT(quitApp()), nullptr, Qt::ApplicationShortcut);
 }
 
@@ -142,7 +154,7 @@ void MainWindow::activateLaser()
     // Logic:
     // 1. If currently in Laser Mode (and implied not Zoom), Toggle Check = OFF (Return to Normal)
     // 2. If currently Normal or Zoom, Switch to Laser (Laser ON, Zoom OFF)
-    
+
     if (laserCheckBox->isChecked()) {
         resetCursor();
     } else {
@@ -396,7 +408,23 @@ void MainWindow::setupUi()
     connect(laserCheckBox, &QCheckBox::toggled, this, [this](bool checked){ showLaser = checked; presentationDisplay->enableLaserPointer(checked); });
     featuresGrid->addWidget(laserCheckBox, 0, 0, 1, 3);
 
-    // Row 1: Laser Param 1 (Size)
+    // Row 1: Laser Color (Moved Up)
+    QLabel *lColorLbl = new QLabel("Color");
+    laserColorCombo = new QComboBox();
+    laserColorCombo->addItem("Red");
+    laserColorCombo->addItem("Green");
+    laserColorCombo->addItem("Blue");
+    laserColorCombo->setMinimumWidth(80); // Ensure visibility
+    laserColorCombo->setStyleSheet("QComboBox { background: white; color: black; padding: 2px; }"); // High contrast
+    connect(laserColorCombo, &QComboBox::currentTextChanged, this, [this](const QString &text){
+        if (text == "Red") presentationDisplay->setLaserColor(Qt::red);
+        else if (text == "Green") presentationDisplay->setLaserColor(Qt::green);
+        else if (text == "Blue") presentationDisplay->setLaserColor(Qt::blue);
+    });
+    featuresGrid->addWidget(lColorLbl, 1, 0);
+    featuresGrid->addWidget(laserColorCombo, 1, 1, 1, 2);
+
+    // Row 2: Laser Param 1 (Size) - Shifted Down
     QLabel *lSizeLbl = new QLabel("Size");
     laserSizeSlider = new QSlider(Qt::Horizontal);
     laserSizeSlider->setRange(10, 200); laserSizeSlider->setValue(60);
@@ -405,11 +433,11 @@ void MainWindow::setupUi()
         lSizeVal->setText(QString("%1px").arg(val));
         presentationDisplay->setLaserSettings(val, laserOpacitySlider->value());
     });
-    featuresGrid->addWidget(lSizeLbl, 1, 0);
-    featuresGrid->addWidget(laserSizeSlider, 1, 1);
-    featuresGrid->addWidget(lSizeVal, 1, 2);
+    featuresGrid->addWidget(lSizeLbl, 2, 0);
+    featuresGrid->addWidget(laserSizeSlider, 2, 1);
+    featuresGrid->addWidget(lSizeVal, 2, 2);
 
-    // Row 2: Laser Param 2 (Opacity)
+    // Row 3: Laser Param 2 (Opacity) - Shifted Down
     QLabel *lOpLbl = new QLabel("Alpha");
     laserOpacitySlider = new QSlider(Qt::Horizontal);
     laserOpacitySlider->setRange(20, 255); laserOpacitySlider->setValue(128);
@@ -418,14 +446,11 @@ void MainWindow::setupUi()
         lOpVal->setText(QString::number(val));
         presentationDisplay->setLaserSettings(laserSizeSlider->value(), val);
     });
-    featuresGrid->addWidget(lOpLbl, 2, 0);
-    featuresGrid->addWidget(laserOpacitySlider, 2, 1);
-    featuresGrid->addWidget(lOpVal, 2, 2);
+    featuresGrid->addWidget(lOpLbl, 3, 0);
+    featuresGrid->addWidget(laserOpacitySlider, 3, 1);
+    featuresGrid->addWidget(lOpVal, 3, 2);
 
-    // Row 3: Spacer/Separator?
-    // Just a small gap handled by spacing
-
-    // Row 4: Zoom Checkbox
+    // Row 4: Zoom Checkbox (Moved up)
     zoomCheckBox = new QCheckBox("Zoom (Z)");
     connect(zoomCheckBox, &QCheckBox::toggled, this, [this](bool checked){ presentationDisplay->enableZoom(checked); });
     featuresGrid->addWidget(zoomCheckBox, 4, 0, 1, 3);
@@ -453,7 +478,7 @@ void MainWindow::setupUi()
 
     featuresGrid->addWidget(zSizeLbl, 5, 0);
     featuresGrid->addWidget(zoomSizeSlider, 5, 1);
-    featuresGrid->addWidget(zSizeVal, 5, 2); // reuse zSizeVal pointer? logic above captures it.
+    featuresGrid->addWidget(zSizeVal, 5, 2);
 
     featuresGrid->addWidget(zMagLbl, 6, 0);
     featuresGrid->addWidget(zoomMagSlider, 6, 1);
@@ -469,12 +494,9 @@ void MainWindow::setupUi()
 
     // -- Bottom: Buttons --
     QHBoxLayout *buttonRow = new QHBoxLayout();
-    closeButton = new QPushButton("Close Presenter");
-    closeButton->setStyleSheet("background-color: #ffcccc; padding: 5px;");
-    connect(closeButton, &QPushButton::clicked, this, &MainWindow::close);
-
+    // Close Button Removed from here
     buttonRow->addStretch();
-    buttonRow->addWidget(closeButton);
+    // buttonRow->addWidget(closeButton);
 
     controlsRight->addStretch();
     controlsRight->addLayout(buttonRow);
@@ -572,10 +594,24 @@ void MainWindow::setupUi()
     clockLayout->addLayout(clockControls);
     clockLayout->addStretch();
 
+    // Close Button Frame (New)
+    QFrame *closeFrame = new QFrame();
+    closeFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+    QHBoxLayout *closeLayout = new QHBoxLayout(closeFrame);
+
+    closeButton = new QPushButton("Close Presenter");
+    closeButton->setStyleSheet("background-color: #ffcccc; padding: 5px; font-weight: bold;");
+    connect(closeButton, &QPushButton::clicked, this, &MainWindow::close);
+
+    closeLayout->addStretch();
+    closeLayout->addWidget(closeButton);
+    closeLayout->addStretch();
+
     // Add to FlowLayout
     centerLayout->addWidget(controlsFrame);
     centerLayout->addWidget(timerFrame);
     centerLayout->addWidget(clockFrame);
+    centerLayout->addWidget(closeFrame); // At the bottom
 
     // Add to Right
     rightLayout->addWidget(nextSlideTitle);
@@ -1047,6 +1083,10 @@ void MainWindow::loadSettings()
         int opacity = settings.value("features/laserOpacity").toInt();
         laserOpacitySlider->setValue(opacity);
     }
+    if (settings.contains("features/laserColor")) {
+        QString color = settings.value("features/laserColor").toString();
+        laserColorCombo->setCurrentText(color);
+    }
 
     // Load Fonts (Family/Style)
     if (settings.contains("font/clockFont")) {
@@ -1102,13 +1142,14 @@ void MainWindow::saveSettings()
     settings.setValue("window/geometry", saveGeometry());
     // saveState removed
 
-    settings.setValue("features/laser", showLaser);
-    settings.setValue("features/zoom", zoomCheckBox->isChecked());
+    // We do NOT save "features/laser" or "features/zoom" states.
+    // The application must always start in Normal cursor mode.
     settings.setValue("features/zoomSize", zoomSizeSlider->value());
     settings.setValue("features/zoomMag", zoomMagSlider->value());
 
     settings.setValue("features/laserSize", laserSizeSlider->value());
     settings.setValue("features/laserOpacity", laserOpacitySlider->value());
+    settings.setValue("features/laserColor", laserColorCombo->currentText());
 
     settings.setValue("font/clockSize", clockFontSlider->value());
     settings.setValue("font/timerSize", timerFontSlider->value());

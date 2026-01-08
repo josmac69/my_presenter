@@ -23,7 +23,9 @@ public:
     void refreshSlide();
     
     void enableLaserPointer(bool active);
-    void setLaserSettings(int diameter, int opacity); // NEW: Configurable size/opacity
+    void setLaserSettings(int diameter, int opacity); // Configurable size/opacity
+    void setLaserColor(const QColor &color); // NEW: Configurable color
+
     void enableZoom(bool active);
     void setZoomSettings(float factor, int diameter);
     void setAspectRatioLock(bool locked);
@@ -47,6 +49,7 @@ private:
     bool laserActive; // Track state for disabling mouse tracking if neither active?
     int laserDiameter;
     int laserOpacity;
+    QColor laserColor;
 
     // Zoom
     bool zoomActive;
