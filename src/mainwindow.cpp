@@ -85,11 +85,11 @@ void MainWindow::setupShortcuts()
     new QShortcut(QKeySequence(Qt::Key_L), this, SLOT(activateLaser()), nullptr, Qt::ApplicationShortcut);
     new QShortcut(QKeySequence(Qt::Key_N), this, SLOT(resetCursor()), nullptr, Qt::ApplicationShortcut);
     
-    QShortcut *zoomShortcut = new QShortcut(QKeySequence(Qt::Key_Z), this, SLOT(activateZoom()), nullptr, Qt::ApplicationShortcut);
+    new QShortcut(QKeySequence(Qt::Key_Z), this, SLOT(activateZoom()), nullptr, Qt::ApplicationShortcut);
     // Note: using SLOT() macro for consistency with above, or new connection syntax. 
     // Mixing them is fine but ApplicationShortcut is the key.
     
-    QShortcut *timerShortcut = new QShortcut(QKeySequence(Qt::Key_P), this, SLOT(toggleTimer()), nullptr, Qt::ApplicationShortcut);
+    new QShortcut(QKeySequence(Qt::Key_P), this, SLOT(toggleTimer()), nullptr, Qt::ApplicationShortcut);
     
     new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_S), this, SLOT(toggleSplitView()), nullptr, Qt::ApplicationShortcut);
 
@@ -139,12 +139,14 @@ void MainWindow::lastSlide()
 // toggleLaser removed
 void MainWindow::activateLaser()
 {
-    // Force switch to Laser:
-    // 1. Disable Zoom unconditional
-    zoomCheckBox->setChecked(false);
+    // Logic:
+    // 1. If currently in Laser Mode (and implied not Zoom), Toggle Check = OFF (Return to Normal)
+    // 2. If currently Normal or Zoom, Switch to Laser (Laser ON, Zoom OFF)
     
-    // 2. Enable Laser unconditional
-    if (!laserCheckBox->isChecked()) {
+    if (laserCheckBox->isChecked()) {
+        resetCursor();
+    } else {
+        zoomCheckBox->setChecked(false);
         laserCheckBox->setChecked(true);
     }
 }
@@ -159,12 +161,14 @@ void MainWindow::resetCursor()
 
 void MainWindow::activateZoom()
 {
-    // Force switch to Zoom:
-    // 1. Disable Laser unconditional
-    laserCheckBox->setChecked(false);
-    
-    // 2. Enable Zoom unconditional
-    if (!zoomCheckBox->isChecked()) {
+    // Logic:
+    // 1. If currently in Zoom Mode (and implied not Laser), Toggle Check = OFF (Return to Normal)
+    // 2. If currently Normal or Laser, Switch to Zoom (Zoom ON, Laser OFF)
+
+    if (zoomCheckBox->isChecked()) {
+        resetCursor();
+    } else {
+        laserCheckBox->setChecked(false);
         zoomCheckBox->setChecked(true);
     }
 }
@@ -1007,15 +1011,12 @@ void MainWindow::loadSettings()
     restoreGeometry(settings.value("window/geometry").toByteArray());
     // restoreState removed
 
-    if (settings.contains("features/laser")) {
-        showLaser = settings.value("features/laser").toBool();
-        laserCheckBox->setChecked(showLaser);
-    }
+    // Forced Normal Cursor on Startup (User Request)
+    // We intentionally do NOT load "features/laser" or "features/zoom" checks here.
+    // Ensure they are unchecked by default (which they are in constructor/UI init).
+    if (laserCheckBox->isChecked()) laserCheckBox->setChecked(false);
+    if (zoomCheckBox->isChecked()) zoomCheckBox->setChecked(false);
 
-    if (settings.contains("features/zoom")) {
-        bool zoomEnabled = settings.value("features/zoom").toBool();
-        zoomCheckBox->setChecked(zoomEnabled);
-    }
 
     if (settings.contains("features/zoomSize")) {
         int size = settings.value("features/zoomSize").toInt();
